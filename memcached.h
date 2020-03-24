@@ -5,6 +5,9 @@
  * structures and function prototypes.
  */
 
+#ifndef __MEMCACHED_H__
+#define __MEMCACHED_H__
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -12,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/uio.h>
 #include <netinet/in.h>
 #include <event.h>
 #include <netdb.h>
@@ -396,9 +400,11 @@ struct settings {
     rel_time_t oldest_live; /* ignore existing items older than this */
     uint64_t oldest_cas; /* ignore existing items with CAS values lower than this */
     int evict_to_free;
+#ifndef DISABLE_UNIX_SOCKET
     char *socketpath;   /* path to unix socket if using local socket */
-    char *auth_file;    /* path to user authentication file */
     int access;  /* access mask (a la chmod) for unix domain socket */
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
+    char *auth_file;    /* path to user authentication file */
     double factor;          /* chunk size growth factor */
     int chunk_size;
     int num_threads;        /* number of worker (without dispatcher) libevent threads to run */
@@ -666,6 +672,16 @@ typedef struct _io_wrap {
  * The structure representing a connection into memcached.
  */
 struct conn {
+#ifdef _WIN32
+    /* In Windows, socket fds can't be used as index to conns array because the values
+     * are random and can even start beyond 1000! To achieve zero-loop without changing
+     * much of how memcached uses the conns array, 2 indeces are added to be used
+     * in linking connection objects. Allocating/Reusing/Closing a connection object no
+     * longer requires a loop or other means that can add runtime overhead.
+     */
+    int conn_idx;       /** index of this conn object to conns array */
+    int next_free_idx;  /** index of the next available conn object */
+#endif /* #ifdef _WIN32 */
     sasl_conn_t *sasl_conn;
     int    sfd;
     bool sasl_started;
@@ -871,6 +887,27 @@ extern void drop_worker_privileges(void);
 #define drop_worker_privileges()
 #endif
 
+#ifndef _WIN32
+/*
+ * The Win32 pipe port is implemented using libevent's evutil_socketpair.
+ * The returned fds can't be used for read/write call otherwise EBADF will occur.
+ * send/recv is used instead for the Win32 port.
+ * No change for *nix systems, just alias of read/write.
+ */
+#define pipe_write(fd, buf, count)  write(fd, buf, count)
+#define pipe_read(fd, buf, nbyte)   read(fd, buf, nbyte)
+/*
+ * Even though no build error with socket close/read/write when building in Win32,
+ * behavior is totally different. Example, server can still be accessed
+ * after calling close API. To avoid adding too many #ifndef just to use
+ * Win32's socket API, better change APIs which are just alias
+ * for *nix systems.
+ */
+#define sock_write(fd, buf, count)  write(fd, buf, count)
+#define sock_read(fd, buf, nbyte)   read(fd, buf, nbyte)
+#define sock_close(fd)              close(fd)
+#endif /* #ifndef _WIN32 */
+
 /* If supported, give compiler hints for branch prediction. */
 #if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
 #define __builtin_expect(x, expected_value) (x)
@@ -878,3 +915,5 @@ extern void drop_worker_privileges(void);
 
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
+
+#endif /* #ifndef __MEMCACHED_H__ */
