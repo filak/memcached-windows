@@ -142,7 +142,7 @@ run_crusher_test() {
     run_crusher_test > "${_pkg}/tests/mc-crusher.log" 2>&1
   fi
 
-  touch -c -r "${_ref}" "${_pkg}/tests/*.log"
+  touch -c -r "${_ref}" ${_pkg}/tests/*.log
 
   # Create package
 
