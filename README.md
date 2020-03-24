@@ -104,8 +104,8 @@ Main logic is same as the official except for the necessary platform-specific ch
 
 ## CI build and test logs
 
-https://travis-ci.org/github/jefyt/memcached-windows (Uploader of Bintray binaries)
-https://ci.appveyor.com/project/jefty/memcached-windows
+* https://travis-ci.org/github/jefyt/memcached-windows (Uploader of Bintray binaries)
+* https://ci.appveyor.com/project/jefty/memcached-windows (Generates identical binaries as Travis)
 
 ## Environment
 
