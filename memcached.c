@@ -612,19 +612,17 @@ conn *conn_new(const int sfd, enum conn_states init_state,
 
     if (NULL == c) {
 #ifndef _WIN32
-        if (!(c = (conn *)calloc(1, sizeof(conn)))) {
+        c = (conn *)calloc(1, sizeof(conn));
+#else
+        c = conn_list_open(sfd);
+#endif /* #ifndef _WIN32 */
+        if (!c) {
             STATS_LOCK();
             stats.malloc_fails++;
             STATS_UNLOCK();
             fprintf(stderr, "Failed to allocate connection object\n");
             return NULL;
         }
-#else
-        c = conn_list_open(sfd);
-        if (!c) {
-            return NULL;
-        }
-#endif /* #ifndef _WIN32 */
         MEMCACHED_CONN_CREATE(c);
         c->read = NULL;
         c->sendmsg = NULL;
