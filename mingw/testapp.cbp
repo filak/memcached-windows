@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="testapp" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/testapp" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/testapp" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wextra" />
+			<Add option="-Wall" />
+			<Add option="-DHAVE_CONFIG_H" />
+			<Add option="-D_POSIX" />
+			<Add option="-D_GNU_SOURCE" />
+			<Add option="-D__USE_MINGW_ANSI_STDIO" />
+			<Add option="-D_WIN32_WINNT=0x0601" />
+			<Add option="-DDISABLE_UNIX_SOCKET" />
+			<Add option="-DDISABLE_SIGIGNORE" />
+			<Add option="-DDISABLE_RUNAS_USER" />
+			<Add option="-DWINDOWS_ONLY_SIGNALS" />
+			<Add option="-DDISABLE_RLIMIT_NOFILE" />
+			<Add option="-DDISABLE_MLOCKALL" />
+			<Add option="-DDISABLE_PIPE" />
+			<Add option='-DMEMCACHED_EXE=\&quot;memcached.exe\&quot;' />
+			<Add directory="." />
+			<Add directory="include" />
+			<Add directory="$(LIBEVENTDIR)/include" />
+		</Compiler>
+		<Linker>
+			<Add option="-Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
+			<Add directory="$(LIBEVENTDIR)/lib" />
+		</Linker>
+		<Unit filename="../cache.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../cache.h" />
+		<Unit filename="../hash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../hash.h" />
+		<Unit filename="../jenkins_hash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../jenkins_hash.h" />
+		<Unit filename="../murmur3_hash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../murmur3_hash.h" />
+		<Unit filename="../stats_prefix.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../stats_prefix.h" />
+		<Unit filename="../testapp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../util.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../util.h" />
+		<Unit filename="include/sys/socket.h" />
+		<Unit filename="include/sys/wait.h" />
+		<Unit filename="src/mingw_logger.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/mingw_signal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/mingw_socket.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/mingw_unistd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

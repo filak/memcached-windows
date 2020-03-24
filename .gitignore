@@ -43,3 +43,5 @@ doc/protocol-binary.txt
 /memcached.spec
 .*.swp
 /compile_commands.json
+mingw/*.layout
+mingw/*.depend

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="memcached" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/memcached" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/memcached" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wextra" />
+			<Add option="-Wall" />
+			<Add option="-DHAVE_CONFIG_H" />
+			<Add option="-D_POSIX" />
+			<Add option="-D_GNU_SOURCE" />
+			<Add option="-D__USE_MINGW_ANSI_STDIO" />
+			<Add option="-D_WIN32_WINNT=0x0601" />
+			<Add option="-DDISABLE_UNIX_SOCKET" />
+			<Add option="-DDISABLE_RUNAS_USER" />
+			<Add option="-DWINDOWS_ONLY_SIGNALS" />
+			<Add option="-DDISABLE_RLIMIT_NOFILE" />
+			<Add option="-DDISABLE_MLOCKALL" />
+			<Add option="-DDISABLE_COREDUMP" />
+			<Add directory="../" />
+			<Add directory="include" />
+			<Add directory="src" />
+			<Add directory="$(LIBEVENTDIR)/include" />
+		</Compiler>
+		<Linker>
+			<Add option="-Wl,-Bstatic -levent -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
+			<Add directory="$(LIBEVENTDIR)/lib" />
+		</Linker>
+		<Unit filename="../assoc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../assoc.h" />
+		<Unit filename="../authfile.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../authfile.h" />
+		<Unit filename="../bipbuffer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../bipbuffer.h" />
+		<Unit filename="../cache.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../cache.h" />
+		<Unit filename="../crawler.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../crawler.h" />
+		<Unit filename="../hash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../hash.h" />
+		<Unit filename="../items.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../items.h" />
+		<Unit filename="../itoa_ljust.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../itoa_ljust.h" />
+		<Unit filename="../jenkins_hash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../jenkins_hash.h" />
+		<Unit filename="../logger.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../logger.h" />
+		<Unit filename="../memcached.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../memcached.h" />
+		<Unit filename="../murmur3_hash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../murmur3_hash.h" />
+		<Unit filename="../restart.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../restart.h" />
+		<Unit filename="../slab_automove.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../slab_automove.h" />
+		<Unit filename="../slabs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../slabs.h" />
+		<Unit filename="../stats_prefix.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../stats_prefix.h" />
+		<Unit filename="../thread.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../trace.h" />
+		<Unit filename="../util.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../util.h" />
+		<Unit filename="src/mingw_all.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

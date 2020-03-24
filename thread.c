@@ -179,7 +179,7 @@ void pause_threads(enum pause_thread_types type) {
     pthread_mutex_lock(&init_lock);
     init_count = 0;
     for (i = 0; i < settings.num_threads; i++) {
-        if (write(threads[i].notify_send_fd, buf, 1) != 1) {
+        if (pipe_write(threads[i].notify_send_fd, buf, 1) != 1) {
             perror("Failed writing to notify pipe");
             /* TODO: This is a fatal problem. Can it ever happen temporarily? */
         }
@@ -208,7 +208,7 @@ void stop_threads(void) {
     pthread_mutex_lock(&init_lock);
     init_count = 0;
     for (i = 0; i < settings.num_threads; i++) {
-        if (write(threads[i].notify_send_fd, buf, 1) != 1) {
+        if (pipe_write(threads[i].notify_send_fd, buf, 1) != 1) {
             perror("Failed writing to notify pipe");
             /* TODO: This is a fatal problem. Can it ever happen temporarily? */
         }
@@ -500,7 +500,6 @@ static void *worker_libevent(void *arg) {
     return NULL;
 }
 
-
 /*
  * Processes an incoming "handle a new connection" item. This is called when
  * input arrives on the libevent wakeup pipe.
@@ -512,7 +511,7 @@ static void thread_libevent_process(int fd, short which, void *arg) {
     conn *c;
     unsigned int fd_from_pipe;
 
-    if (read(fd, buf, 1) != 1) {
+    if (pipe_read(fd, buf, 1) != 1) {
         if (settings.verbose > 0)
             fprintf(stderr, "Can't read from libevent pipe\n");
         return;
@@ -545,7 +544,7 @@ static void thread_libevent_process(int fd, short which, void *arg) {
                             SSL_free(item->ssl);
                         }
 #endif
-                        close(item->sfd);
+                        sock_close(item->sfd);
                     }
                 } else {
                     c->thread = me;
@@ -566,7 +565,7 @@ static void thread_libevent_process(int fd, short which, void *arg) {
         break;
     /* a client socket timed out */
     case 't':
-        if (read(fd, &fd_from_pipe, sizeof(fd_from_pipe)) != sizeof(fd_from_pipe)) {
+        if (pipe_read(fd, &fd_from_pipe, sizeof(fd_from_pipe)) != sizeof(fd_from_pipe)) {
             if (settings.verbose > 0)
                 fprintf(stderr, "Can't read timeout fd from libevent pipe\n");
             return;
@@ -575,7 +574,7 @@ static void thread_libevent_process(int fd, short which, void *arg) {
         break;
     /* a side thread redispatched a client connection */
     case 'r':
-        if (read(fd, &fd_from_pipe, sizeof(fd_from_pipe)) != sizeof(fd_from_pipe)) {
+        if (pipe_read(fd, &fd_from_pipe, sizeof(fd_from_pipe)) != sizeof(fd_from_pipe)) {
             if (settings.verbose > 0)
                 fprintf(stderr, "Can't read redispatch fd from libevent pipe\n");
             return;
@@ -602,7 +601,7 @@ void dispatch_conn_new(int sfd, enum conn_states init_state, int event_flags,
     CQ_ITEM *item = cqi_new();
     char buf[1];
     if (item == NULL) {
-        close(sfd);
+        sock_close(sfd);
         /* given that malloc failed this may also fail, but let's try */
         fprintf(stderr, "Failed to allocate memory for connection object\n");
         return;
@@ -626,7 +625,7 @@ void dispatch_conn_new(int sfd, enum conn_states init_state, int event_flags,
 
     MEMCACHED_CONN_DISPATCH(sfd, (int64_t)thread->thread_id);
     buf[0] = 'c';
-    if (write(thread->notify_send_fd, buf, 1) != 1) {
+    if (pipe_write(thread->notify_send_fd, buf, 1) != 1) {
         perror("Writing to thread notify pipe");
     }
 }
@@ -642,7 +641,7 @@ void redispatch_conn(conn *c) {
 
     buf[0] = 'r';
     memcpy(&buf[1], &c->sfd, sizeof(int));
-    if (write(thread->notify_send_fd, buf, REDISPATCH_MSG_SIZE) != REDISPATCH_MSG_SIZE) {
+    if (pipe_write(thread->notify_send_fd, buf, REDISPATCH_MSG_SIZE) != REDISPATCH_MSG_SIZE) {
         perror("Writing redispatch to thread notify pipe");
     }
 }

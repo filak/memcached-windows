@@ -1,12 +1,17 @@
 bin_PROGRAMS = memcached
 pkginclude_HEADERS = protocol_binary.h
-noinst_PROGRAMS = memcached-debug sizes testapp timedrun
+noinst_PROGRAMS = memcached-debug sizes testapp
+if !BUILD_MINGW
+noinst_PROGRAMS += timedrun
+endif
 
 BUILT_SOURCES=
 
 testapp_SOURCES = testapp.c util.c util.h stats_prefix.c stats_prefix.h jenkins_hash.c murmur3_hash.c hash.c hash.h cache.c
 
+if !BUILD_MINGW
 timedrun_SOURCES = timedrun.c
+endif
 
 memcached_SOURCES = memcached.c memcached.h \
                     hash.c hash.h \
@@ -15,7 +20,7 @@ memcached_SOURCES = memcached.c memcached.h \
                     slabs.c slabs.h \
                     items.c items.h \
                     assoc.c assoc.h \
-                    thread.c daemon.c \
+                    thread.c \
                     stats_prefix.c stats_prefix.h \
                     util.c util.h \
                     trace.h cache.c cache.h sasl_defs.h \
@@ -26,6 +31,10 @@ memcached_SOURCES = memcached.c memcached.h \
                     slab_automove.c slab_automove.h \
                     authfile.c authfile.h \
                     restart.c restart.h
+
+if !BUILD_MINGW
+memcached_SOURCES += daemon.c
+endif
 
 if BUILD_SOLARIS_PRIVS
 memcached_SOURCES += solaris_priv.c
@@ -41,6 +50,15 @@ endif
 
 if BUILD_FREEBSD_PRIVS
 memcached_SOURCES += freebsd_priv.c
+endif
+
+if BUILD_MINGW
+memcached_SOURCES += $(srcdir)/mingw/src/mingw_all.c
+
+testapp_SOURCES += $(srcdir)/mingw/src/mingw_logger.c
+testapp_SOURCES += $(srcdir)/mingw/src/mingw_signal.c
+testapp_SOURCES += $(srcdir)/mingw/src/mingw_socket.c
+testapp_SOURCES += $(srcdir)/mingw/src/mingw_unistd.c
 endif
 
 if ENABLE_SASL
@@ -71,6 +89,22 @@ CLEANFILES=
 if BUILD_LINUX_PRIVS
 memcached_LDADD += -lseccomp
 memcached_debug_LDADD += -lseccomp
+endif
+
+if BUILD_MINGW
+MINGW_DEFS = -D_POSIX -D_GNU_SOURCE -D__USE_MINGW_ANSI_STDIO -D_WIN32_WINNT=0x0601
+MINGW_DEFS += -DWINDOWS_ONLY_SIGNALS -DDISABLE_RUNAS_USER -DDISABLE_UNIX_SOCKET
+MINGW_DEFS += -DDISABLE_RLIMIT_NOFILE -DDISABLE_MLOCKALL -DDISABLE_COREDUMP
+MINGW_INCS = -I$(top_srcdir)/mingw/include -I$(top_srcdir)/mingw/src
+
+memcached_CPPFLAGS += $(MINGW_DEFS)
+memcached_CPPFLAGS += $(MINGW_INCS)
+memcached_debug_CPPFLAGS = $(MINGW_DEFS)
+memcached_debug_CPPFLAGS += $(MINGW_INCS)
+testapp_CPPFLAGS = $(MINGW_DEFS)
+testapp_CPPFLAGS += $(MINGW_INCS)
+sizes_CPPFLAGS = $(MINGW_DEFS)
+sizes_CPPFLAGS += $(MINGW_INCS)
 endif
 
 if BUILD_DTRACE
@@ -122,6 +156,7 @@ test_basic_tls:
 	fi
 endif
 
+if !BUILD_MINGW
 test:	memcached-debug sizes testapp
 	$(builddir)/sizes
 	$(builddir)/testapp
@@ -155,6 +190,11 @@ endif
 	    fi \
 	  done \
 	else :; fi
+else
+test:	memcached-debug$(EXEEXT) sizes$(EXEEXT) testapp$(EXEEXT)
+	wine $(builddir)/sizes$(EXEEXT)
+	WINE_TEST=ON wine $(builddir)/testapp$(EXEEXT)
+endif
 
 docs:
 	(cat Doxyfile ; echo "PROJECT_NUMBER=`cat version.num`") | doxygen -

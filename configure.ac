@@ -4,7 +4,7 @@ m4_include([m4/c99-backport.m4])
 AC_INIT([memcached], [VERSION_NUMBER], [memcached@googlegroups.com])
 AC_CANONICAL_HOST
 AC_CONFIG_SRCDIR([memcached.c])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([subdir-objects foreign])
 AM_CONFIG_HEADER([config.h])
 
 AC_PROG_CC
@@ -367,7 +367,11 @@ AC_CACHE_CHECK([for libevent directory], ac_cv_libevent_dir, [
 ])
   fi
 ])
-LIBS="-levent $LIBS"
+if test "x$host_os" != "xmingw32"; then
+  LIBS="-levent $LIBS"
+else
+  LIBS="-Wl,-Bstatic -levent $LIBS"
+fi
 if test $ac_cv_libevent_dir != "(system)"; then
   if test -d "$ac_cv_libevent_dir/lib" ; then
     LDFLAGS="-L$ac_cv_libevent_dir/lib $LDFLAGS"
@@ -557,6 +561,10 @@ Failed to use print macros (PRIu) as defined in C99 section 7.8.1.
 
 AC_C_CONST
 
+if test "x$host_os" = "xmingw32"; then
+  ac_cv_c_socklen_t=yes
+fi
+
 dnl From licq: Copyright (c) 2000 Dirk Mueller
 dnl Check if the type socklen_t is defined anywhere
 AC_DEFUN([AC_C_SOCKLEN_T],
@@ -609,6 +617,10 @@ AC_DEFUN([AC_C_HTONLL],
 ])
 
 AC_C_HTONLL
+
+if test "x$host_os" = "xmingw32"; then
+  ac_cv_search_pthread_create="-Wl,-Bstatic -lpthread"
+fi
 
 dnl Check whether the user's system supports pthread
 AC_SEARCH_LIBS(pthread_create, pthread)
@@ -748,6 +760,7 @@ AM_CONDITIONAL([BUILD_SOLARIS_PRIVS],[test "$build_solaris_privs" = "yes"])
 AM_CONDITIONAL([BUILD_LINUX_PRIVS],[test "$build_linux_privs" = "yes"])
 AM_CONDITIONAL([BUILD_OPENBSD_PRIVS],[test "$build_openbsd_privs" = "yes"])
 AM_CONDITIONAL([BUILD_FREEBSD_PRIVS],[test "$build_freebsd_privs" = "yes"])
+AM_CONDITIONAL([BUILD_MINGW],[test "$host_os" = "mingw32"])
 
 AC_ARG_ENABLE(docs,
   [AS_HELP_STRING([--disable-docs],[Disable documentation generation])])
@@ -771,7 +784,12 @@ then
 elif test "$GCC" = "yes"
 then
   GCC_VERSION=`$CC -dumpversion`
-  CFLAGS="$CFLAGS -Wall -Werror -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls"
+  CFLAGS="$CFLAGS -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls"
+  if test "x$host_os" != "xmingw32"; then
+    CFLAGS="$CFLAGS -Werror"
+  else
+    LIBS="$LIBS -Wl,-Bdynamic -lws2_32"
+  fi
   if test "x$enable_asan" = "xyes"; then
     CFLAGS="$CFLAGS -fsanitize=address"
   fi

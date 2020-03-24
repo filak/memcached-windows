@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "config.h"
 #include "cache.h"
@@ -28,7 +29,22 @@
 #include <openssl/ssl.h>
 #endif
 
-#define TMP_TEMPLATE "/tmp/test_file.XXXXXXX"
+#ifndef _WIN32
+#define sock_write(fd, buf, count)  write(fd, buf, count)
+#define sock_read(fd, buf, nbyte)   read(fd, buf, nbyte)
+#define sock_close(fd)              close(fd)
+
+#define TMP_DIR                     "/tmp/"
+#define MEMCACHED_EXE               "./memcached-debug"
+#define TIMEDRUN_EXE                "./timedrun"
+#else
+#define TMP_DIR                     "./"
+#ifndef MEMCACHED_EXE
+#define MEMCACHED_EXE               "memcached-debug.exe"
+#endif /* #ifndef MEMCACHED_EXE */
+#define WINE_TEST_ENV               "WINE_TEST"
+#endif /* #ifndef _WIN32 */
+#define TMP_TEMPLATE TMP_DIR"test_file.XXXXXXX"
 
 enum test_return { TEST_SKIP, TEST_PASS, TEST_FAIL };
 
@@ -55,14 +71,15 @@ static ssize_t ssl_write(struct conn *c, const void *buf, size_t count);
 #endif
 
 ssize_t tcp_read(struct conn *c, void *buf, size_t count) {
-    assert(c != NULL);
-    return read(c->sock, buf, count);
+    assert (c != NULL);
+    return sock_read(c->sock, buf, count);
 }
 
 ssize_t tcp_write(struct conn *c, const void *buf, size_t count) {
-    assert(c != NULL);
-    return write(c->sock, buf, count);
+    assert (c != NULL);
+    return sock_write(c->sock, buf, count);
 }
+
 #ifdef TLS
 ssize_t ssl_read(struct conn *c, void *buf, size_t count) {
     assert(c != NULL);
@@ -91,7 +108,7 @@ static void close_conn() {
     if (con->ssl_ctx)
         SSL_CTX_free(con->ssl_ctx);
 #endif
-    if (con->sock > 0) close(con->sock);
+    if (con->sock > 0) sock_close(con->sock);
     free(con);
     con = NULL;
 }
@@ -223,6 +240,7 @@ static enum test_return cache_redzone_test(void)
     sigemptyset(&action.sa_mask);
     sigaction(SIGABRT, &action, &old_action);
 
+
     /* check memory debug.. */
     char *p = cache_alloc(cache);
     char old = *(p - 1);
@@ -234,6 +252,7 @@ static enum test_return cache_redzone_test(void)
     p[sizeof(uint32_t)] = 0;
     cache_free(cache, p);
     assert(cache_error == 1);
+
 
     /* restore signal handler */
     sigaction(SIGABRT, &old_action, NULL);
@@ -501,10 +520,10 @@ static enum test_return test_safe_strtol(void) {
 static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
     char environment[80];
     snprintf(environment, sizeof(environment),
-             "MEMCACHED_PORT_FILENAME=/tmp/ports.%lu", (long)getpid());
+             "MEMCACHED_PORT_FILENAME="TMP_DIR"ports.%lu", (long)getpid());
     char *filename= environment + strlen("MEMCACHED_PORT_FILENAME=");
     char pid_file[80];
-    snprintf(pid_file, sizeof(pid_file), "/tmp/pid.%lu", (long)getpid());
+    snprintf(pid_file, sizeof(pid_file), TMP_DIR"pid.%lu", (long)getpid());
 
     remove(filename);
     remove(pid_file);
@@ -519,10 +538,14 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
     system(coreadm);
 #endif
 
-    pid_t pid = fork();
+    pid_t pid;
+#ifndef _WIN32
+    pid = fork();
     assert(pid != -1);
 
-    if (pid == 0) {
+    if (pid == 0)
+#endif /* #ifndef _WIN32 */
+    {
         /* Child */
         char *argv[24];
         int arg = 0;
@@ -535,11 +558,22 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
         putenv("MALLOC_DEBUG=WATCH");
 #endif
 
+#ifndef _WIN32
         if (!daemon) {
-            argv[arg++] = "./timedrun";
+            argv[arg++] = TIMEDRUN_EXE;
             argv[arg++] = tmo;
         }
-        argv[arg++] = "./memcached-debug";
+#else
+        /* In Windows, no such thing as killing a child process using a signal (e.g. SIGTERM) and the
+         * child process can handle the termination using the signal. Process is killed immediately
+         * via TerminateProcess (called internally by kill wrapper) unless an IPC mechanism is in
+         * place before the TerminateProcess call. Therefore even creating a timedrun.exe won't solve
+         * this issue unless memcached will add IPC to handle process kill gradefully from timedrun.exe.
+         * To avoid adding IPC for the kill sequence, just don't use timedrun.
+         * Ref: https://docs.microsoft.com/en-us/windows/win32/procthread/terminating-a-process
+        */
+#endif /* #ifndef _WIN32 */
+        argv[arg++] = MEMCACHED_EXE;
         argv[arg++] = "-A";
         argv[arg++] = "-p";
         argv[arg++] = "-1";
@@ -554,11 +588,13 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
             argv[arg++] = "ssl_key=t/server_key.pem";
         }
 #endif
+#ifndef DISABLE_RUNAS_USER
         /* Handle rpmbuild and the like doing this as root */
         if (getuid() == 0) {
             argv[arg++] = "-u";
             argv[arg++] = "root";
         }
+#endif /* #ifndef DISABLE_RUNAS_USER */
         if (daemon) {
             argv[arg++] = "-d";
             argv[arg++] = "-P";
@@ -572,13 +608,24 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
         argv[arg++] = "relaxed_privileges";
 #endif
         argv[arg++] = NULL;
+#ifndef _WIN32
         assert(execv(argv[0], argv) != -1);
+#else
+        assert(run_cmd_background(argv, &pid) != -1);
+#endif /* #ifndef _WIN32 */
     }
 
     /* Yeah just let us "busy-wait" for the file to be created ;-) */
     while (access(filename, F_OK) == -1) {
         usleep(10);
     }
+
+    /* In Windows, sometimes fopen error occurs even though access is already OK.
+     * File may not be ready for reading yet so sleep at least a second.
+     */
+#ifdef _WIN32
+    sleep(1);
+#endif /* #ifdef _WIN32 */
 
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
@@ -632,9 +679,21 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
 static enum test_return test_issue_44(void) {
     in_port_t port;
     pid_t pid = start_server(&port, true, 15);
+#ifndef WINDOWS_ONLY_SIGNALS
     assert(kill(pid, SIGHUP) == 0);
     sleep(1);
     assert(kill(pid, SIGTERM) == 0);
+#else
+    /* SIGTERM signal is not generated under Windows. It is included for
+     * ANSI compatibility. Although any signal is ignored internally in Windows
+     * version of kill, SIGINT is used here since Windows generates this if a
+     * process is terminated via Ctrl+C in command prompt. This is just an
+     * emphasis that SIGTERM is unsupported in Windows although defined unless
+     * raised internally by application. memcached only raise(SIGINT).
+     * Ref: https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/signal?view=vs-2019
+     **/
+    assert(kill(pid, SIGINT) == 0);
+#endif /* #ifndef WINDOWS_ONLY_SIGNALS */
 
     return TEST_PASS;
 }
@@ -678,14 +737,14 @@ static struct conn *connect_server(const char *hostname, in_port_t port,
           if (connect(sock, ai->ai_addr, ai->ai_addrlen) == -1) {
              fprintf(stderr, "Failed to connect socket: %s\n",
                      strerror(errno));
-             close(sock);
+             sock_close(sock);
              sock = -1;
           } else if (nonblock) {
               int flags = fcntl(sock, F_GETFL, 0);
               if (flags < 0 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
                   fprintf(stderr, "Failed to enable nonblocking mode: %s\n",
                           strerror(errno));
-                  close(sock);
+                  sock_close(sock);
                   sock = -1;
               }
           }
@@ -702,14 +761,14 @@ static struct conn *connect_server(const char *hostname, in_port_t port,
         if (c->ssl_ctx == NULL) {
             fprintf(stderr, "Failed to create the SSL context: %s\n",
                 strerror(errno));
-            close(sock);
+            sock_close(sock);
             sock = -1;
         }
         c->ssl = SSL_new(c->ssl_ctx);
         if (c->ssl == NULL) {
             fprintf(stderr, "Failed to create the SSL object: %s\n",
                 strerror(errno));
-            close(sock);
+            sock_close(sock);
             sock = -1;
         }
         SSL_set_fd (c->ssl, c->sock);
@@ -719,7 +778,7 @@ static struct conn *connect_server(const char *hostname, in_port_t port,
             if (err == SSL_ERROR_SYSCALL || err == SSL_ERROR_SSL) {
                 fprintf(stderr, "SSL connection failed with error code : %s\n",
                     strerror(errno));
-                close(sock);
+                sock_close(sock);
                 sock = -1;
             }
         }
@@ -744,7 +803,14 @@ static enum test_return test_vperror(void) {
     int newfile = mkstemp(tmpl);
     assert(newfile > 0);
     rv = dup2(newfile, STDERR_FILENO);
+#ifndef _WIN32
     assert(rv == STDERR_FILENO);
+#else
+    /* MinGW has a bug(or specs?) that dup2 success returns 0 instead of the newfd
+     * Ref: https://lists.gnu.org/archive/html/bug-gnulib/2009-07/msg00077.html
+     */
+     assert(rv == 0);
+#endif /* #ifndef _WIN32 */
     rv = close(newfile);
     assert(rv == 0);
 
@@ -753,8 +819,11 @@ static enum test_return test_vperror(void) {
 
     /* Restore stderr */
     rv = dup2(oldstderr, STDERR_FILENO);
+#ifndef _WIN32
     assert(rv == STDERR_FILENO);
-
+#else
+    assert(rv == 0);
+#endif /* #ifndef _WIN32 */
 
     /* Go read the file */
     char buf[80] = { 0 };
@@ -911,7 +980,12 @@ static enum test_return start_memcached_server(void) {
 static enum test_return stop_memcached_server(void) {
     close_conn();
     if (server_pid != -1) {
+#ifndef _WIN32
         assert(kill(server_pid, SIGTERM) == 0);
+#else
+        /* Windows returns -1 with ESRCH errno if server is already shutdown */
+        assert(kill(server_pid, SIGTERM) == -1);
+#endif /* #ifndef _WIN32 */
     }
 
     return TEST_PASS;
@@ -926,7 +1000,20 @@ static enum test_return shutdown_memcached_server(void) {
 
     send_ascii_command("shutdown\r\n");
     /* verify that the server closed the connection */
+#ifndef _WIN32
     assert(con->read(con, buffer, sizeof(buffer)) == 0);
+#else
+    /* Windows returns -1 with WSAECONNRESET errno if server is already shutdown
+     * BUT WINE (which will be used in CI) returns 0 same as *nix expectation.
+     * Adjust the test accordingly.
+     */
+    if(getenv(WINE_TEST_ENV)) {
+        assert(con->read(con, buffer, sizeof(buffer)) == 0);
+    }
+    else {
+        assert(con->read(con, buffer, sizeof(buffer)) == -1);
+    }
+#endif /* #ifndef _WIN32 */
 
     close_conn();
 
@@ -2140,7 +2227,6 @@ static enum test_return test_issue_101(void) {
     enum test_return ret = TEST_PASS;
     struct conn *conns[max];
     int ii = 0;
-    pid_t child = 0;
 
     if (getenv("SKIP_TEST_101") != NULL) {
         return TEST_SKIP;
@@ -2179,6 +2265,12 @@ static enum test_return test_issue_101(void) {
         } while (more);
     }
 
+    /* Windows does not work like fork, just disable this for Windows.
+     * This is just OK because there's separate test for test_binary_noop
+     */
+#ifndef _WIN32
+    pid_t child = 0;
+
     child = fork();
     if (child == (pid_t)-1) {
         abort();
@@ -2195,6 +2287,7 @@ static enum test_return test_issue_101(void) {
         close_conn();
         exit(0);
     }
+#endif /* #ifndef _WIN32 */
 
  cleanup:
     /* close all connections */
@@ -2209,7 +2302,7 @@ static enum test_return test_issue_101(void) {
         if (c->ssl_ctx)
             SSL_CTX_free(c->ssl_ctx);
 #endif
-        if (c->sock > 0) close(c->sock);
+        if (c->sock > 0) sock_close(c->sock);
         free(conns[ii]);
         conns[ii] = NULL;
     }
@@ -2299,6 +2392,15 @@ int main(int argc, char **argv)
 {
     int exitcode = 0;
     int ii = 0, num_cases = 0;
+
+#ifdef _WIN32
+    // Initialize Winsock
+    if (sock_startup()) {
+        fprintf(stderr, "Winsock initialization failed!\n");
+        return -1;
+    }
+#endif /* #ifdef _WIN32 */
+
 #ifdef TLS
     if (getenv("SSL_TEST") != NULL) {
         SSLeay_add_ssl_algorithms();
@@ -2318,10 +2420,14 @@ int main(int argc, char **argv)
 
     for (ii = 0; testcases[ii].description != NULL; ++ii) {
         fflush(stdout);
+#ifndef _WIN32
 #ifndef DEBUG
         /* the test program shouldn't run longer than 10 minutes... */
         alarm(600);
 #endif
+#else
+        fprintf(stdout, "%d - %s...\n", ii + 1, testcases[ii].description);
+#endif /* #ifndef _WIN32 */
         enum test_return ret = testcases[ii].function();
         if (ret == TEST_SKIP) {
             fprintf(stdout, "ok # SKIP %d - %s\n", ii + 1, testcases[ii].description);
@@ -2333,6 +2439,10 @@ int main(int argc, char **argv)
         }
         fflush(stdout);
     }
+
+#ifdef _WIN32
+    sock_cleanup();
+#endif /* #ifdef _WIN32 */
 
     return exitcode;
 }

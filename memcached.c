@@ -25,7 +25,6 @@
 #include <signal.h>
 #include <sys/param.h>
 #include <sys/resource.h>
-#include <sys/uio.h>
 #include <ctype.h>
 #include <stdarg.h>
 
@@ -59,6 +58,10 @@
 #if defined(__FreeBSD__)
 #include <sys/sysctl.h>
 #endif
+
+#ifdef _WIN32
+#include "conn_list.h"
+#endif /* #ifdef _WIN32 */
 
 /*
  * forward declarations
@@ -160,7 +163,7 @@ enum transmit_result {
 /* Default methods to read from/ write to a socket */
 ssize_t tcp_read(conn *c, void *buf, size_t count) {
     assert (c != NULL);
-    return read(c->sfd, buf, count);
+    return sock_read(c->sfd, buf, count);
 }
 
 ssize_t tcp_sendmsg(conn *c, struct msghdr *msg, int flags) {
@@ -170,7 +173,7 @@ ssize_t tcp_sendmsg(conn *c, struct msghdr *msg, int flags) {
 
 ssize_t tcp_write(conn *c, void *buf, size_t count) {
     assert (c != NULL);
-    return write(c->sfd, buf, count);
+    return sock_write(c->sfd, buf, count);
 }
 
 static enum transmit_result transmit(conn *c);
@@ -255,7 +258,9 @@ static void stats_reset(void) {
 
 static void settings_init(void) {
     settings.use_cas = true;
+#ifndef DISABLE_UNIX_SOCKET
     settings.access = 0700;
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
     settings.port = 11211;
     settings.udpport = 0;
 #ifdef TLS
@@ -279,7 +284,9 @@ static void settings_init(void) {
     settings.oldest_live = 0;
     settings.oldest_cas = 0;          /* supplements accuracy of oldest_live */
     settings.evict_to_free = 1;       /* push old items out of cache when memory runs out */
+#ifndef DISABLE_UNIX_SOCKET
     settings.socketpath = NULL;       /* by default, not using a unix socket */
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
     settings.auth_file = NULL;        /* by default, not using ASCII authentication tokens */
     settings.factor = 1.25;
     settings.chunk_size = 48;         /* space for a modest key and value */
@@ -376,7 +383,7 @@ static void *conn_timeout_thread(void *arg) {
             if ((current_time - c->last_cmd_time) > settings.idle_timeout) {
                 buf[0] = 't';
                 memcpy(&buf[1], &i, sizeof(int));
-                if (write(c->thread->notify_send_fd, buf, TIMEOUT_MSG_SIZE)
+                if (pipe_write(c->thread->notify_send_fd, buf, TIMEOUT_MSG_SIZE)
                     != TIMEOUT_MSG_SIZE)
                     perror("Failed to write timeout to notify pipe");
             } else {
@@ -493,10 +500,17 @@ static void conn_init(void) {
         perror("Failed to duplicate file descriptor\n");
         exit(1);
     }
+
+#ifndef _WIN32
     int headroom = 10;      /* account for extra unexpected open FDs */
-    struct rlimit rl;
 
     max_fds = settings.maxconns + headroom + next_fd;
+#else
+    max_fds = settings.maxconns;
+#endif /* #ifndef _WIN32 */
+
+#ifndef DISABLE_RLIMIT_NOFILE
+    struct rlimit rl;
 
     /* But if possible, get the actual highest FD we can possibly ever see. */
     if (getrlimit(RLIMIT_NOFILE, &rl) == 0) {
@@ -505,6 +519,7 @@ static void conn_init(void) {
         fprintf(stderr, "Failed to query maximum file descriptor; "
                         "falling back to maxconns\n");
     }
+#endif /* #ifndef DISABLE_RLIMIT_NOFILE */
 
     close(next_fd);
 
@@ -513,6 +528,9 @@ static void conn_init(void) {
         /* This is unrecoverable so bail out early. */
         exit(1);
     }
+#ifdef _WIN32
+    conn_list_init(max_fds);
+#endif /* #ifdef _WIN32 */
 }
 
 static const char *prot_text(enum protocol prot) {
@@ -585,12 +603,15 @@ conn *conn_new(const int sfd, enum conn_states init_state,
                 const int event_flags,
                 const int read_buffer_size, enum network_transport transport,
                 struct event_base *base, void *ssl) {
-    conn *c;
+    conn *c = NULL;
 
+#ifndef _WIN32
     assert(sfd >= 0 && sfd < max_fds);
     c = conns[sfd];
+#endif /* #ifndef _WIN32 */
 
     if (NULL == c) {
+#ifndef _WIN32
         if (!(c = (conn *)calloc(1, sizeof(conn)))) {
             STATS_LOCK();
             stats.malloc_fails++;
@@ -598,6 +619,12 @@ conn *conn_new(const int sfd, enum conn_states init_state,
             fprintf(stderr, "Failed to allocate connection object\n");
             return NULL;
         }
+#else
+        c = conn_list_open(sfd);
+        if (!c) {
+            return NULL;
+        }
+#endif /* #ifndef _WIN32 */
         MEMCACHED_CONN_CREATE(c);
         c->read = NULL;
         c->sendmsg = NULL;
@@ -624,13 +651,16 @@ conn *conn_new(const int sfd, enum conn_states init_state,
         stats_state.conn_structs++;
         STATS_UNLOCK();
 
+#ifndef _WIN32
         c->sfd = sfd;
         conns[sfd] = c;
+#endif /* #ifdef _WIN32 */
     }
 
     c->transport = transport;
     c->protocol = settings.binding_protocol;
 
+#ifndef DISABLE_UNIX_SOCKET
     /* unix socket mode doesn't need this, so zeroed out.  but why
      * is this done for every command?  presumably for UDP
      * mode.  */
@@ -639,6 +669,9 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     } else {
         c->request_addr_size = 0;
     }
+#else
+    c->request_addr_size = sizeof(c->request_addr);
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
 
     if (transport == tcp_transport && init_state == conn_new_cmd) {
         if (getpeername(sfd, (struct sockaddr *) &c->request_addr,
@@ -892,10 +925,14 @@ static void conn_cleanup(conn *c) {
 void conn_free(conn *c) {
     if (c) {
         assert(c != NULL);
+#ifndef _WIN32
         assert(c->sfd >= 0 && c->sfd < max_fds);
+#endif /* #ifndef _WIN32 */
 
         MEMCACHED_CONN_DESTROY(c);
+#ifndef _WIN32
         conns[c->sfd] = NULL;
+#endif /* #ifndef _WIN32 */
         if (c->rbuf)
             free(c->rbuf);
 #ifdef TLS
@@ -903,7 +940,11 @@ void conn_free(conn *c) {
             c->ssl_wbuf = NULL;
 #endif
 
+#ifndef _WIN32
         free(c);
+#else
+        conn_list_close(c);
+#endif /* #ifndef _WIN32 */
     }
 }
 
@@ -932,7 +973,10 @@ static void conn_close(conn *c) {
         SSL_free(c->ssl);
     }
 #endif
-    close(c->sfd);
+    sock_close(c->sfd);
+#ifdef _WIN32
+    conn_list_close(c);
+#endif /* #ifdef _WIN32 */
     pthread_mutex_lock(&conn_lock);
     allow_new_conns = true;
     pthread_mutex_unlock(&conn_lock);
@@ -3252,9 +3296,11 @@ static void process_stat_settings(ADD_STAT add_stats, void *c) {
     APPEND_STAT("verbosity", "%d", settings.verbose);
     APPEND_STAT("oldest", "%lu", (unsigned long)settings.oldest_live);
     APPEND_STAT("evictions", "%s", settings.evict_to_free ? "on" : "off");
+#ifndef DISABLE_UNIX_SOCKET
     APPEND_STAT("domain_socket", "%s",
                 settings.socketpath ? settings.socketpath : "NULL");
     APPEND_STAT("umask", "%o", settings.access);
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
     APPEND_STAT("growth_factor", "%.2f", settings.factor);
     APPEND_STAT("chunk_size", "%d", settings.chunk_size);
     APPEND_STAT("num_threads", "%d", settings.num_threads);
@@ -3371,7 +3417,9 @@ static inline void get_conn_text(const conn *c, const int af,
     addr_text[0] = '\0';
     const char *protoname = "?";
     unsigned short port = 0;
+#ifndef DISABLE_UNIX_SOCKET
     size_t pathlen = 0;
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
 
     switch (af) {
         case AF_INET:
@@ -3396,6 +3444,7 @@ static inline void get_conn_text(const conn *c, const int af,
             protoname = IS_UDP(c->transport) ? "udp6" : "tcp6";
             break;
 
+#ifndef DISABLE_UNIX_SOCKET
         case AF_UNIX:
             // this strncpy call originally could piss off an address
             // sanitizer; we supplied the size of the dest buf as a limiter,
@@ -3420,6 +3469,7 @@ static inline void get_conn_text(const conn *c, const int af,
             addr_text[pathlen] = '\0';
             protoname = "unix";
             break;
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
     }
 
     if (strlen(addr_text) < 2) {
@@ -5533,7 +5583,7 @@ static void process_misbehave_command(conn *c) {
     int i = socket(AF_INET, SOCK_STREAM, 0);
     if (i != -1) {
         allowed++;
-        close(i);
+        sock_close(i);
     }
 
     // try executing new commands
@@ -7120,7 +7170,7 @@ static void drive_machine(conn *c) {
             if (!use_accept4) {
                 if (fcntl(sfd, F_SETFL, fcntl(sfd, F_GETFL) | O_NONBLOCK) < 0) {
                     perror("setting O_NONBLOCK");
-                    close(sfd);
+                    sock_close(sfd);
                     break;
                 }
             }
@@ -7139,8 +7189,8 @@ static void drive_machine(conn *c) {
 
             if (reject) {
                 str = "ERROR Too many open connections\r\n";
-                res = write(sfd, str, strlen(str));
-                close(sfd);
+                res = sock_write(sfd, str, strlen(str));
+                sock_close(sfd);
             } else {
                 void *ssl_v = NULL;
 #ifdef TLS
@@ -7152,7 +7202,7 @@ static void drive_machine(conn *c) {
                         if (settings.verbose) {
                             fprintf(stderr, "SSL context is not initialized\n");
                         }
-                        close(sfd);
+                        sock_close(sfd);
                         break;
                     }
                     SSL_LOCK();
@@ -7162,7 +7212,7 @@ static void drive_machine(conn *c) {
                         if (settings.verbose) {
                             fprintf(stderr, "Failed to created the SSL object\n");
                         }
-                        close(sfd);
+                        sock_close(sfd);
                         break;
                     }
                     SSL_set_fd(ssl, sfd);
@@ -7174,7 +7224,7 @@ static void drive_machine(conn *c) {
                                 fprintf(stderr, "SSL connection failed with error code : %d : %s\n", err, strerror(errno));
                             }
                             SSL_free(ssl);
-                            close(sfd);
+                            sock_close(sfd);
                             STATS_LOCK();
                             stats.ssl_handshake_errors++;
                             STATS_UNLOCK();
@@ -7518,7 +7568,7 @@ static int new_socket(struct addrinfo *ai) {
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 ||
         fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
         perror("setting O_NONBLOCK");
-        close(sfd);
+        sock_close(sfd);
         return -1;
     }
     return sfd;
@@ -7561,14 +7611,14 @@ static void maximize_sndbuf(const int sfd) {
 
 /**
  * Create a socket and bind it to a specific port number
- * @param interface the interface to bind to
+ * @param iface the interface to bind to
  * @param port the port number to bind to
  * @param transport the transport protocol (TCP / UDP)
  * @param portnumber_file A filepointer to write the port numbers to
  *        when they are successfully added to the list of ports we
  *        listen on.
  */
-static int server_socket(const char *interface,
+static int server_socket(const char *iface,
                          int port,
                          enum network_transport transport,
                          FILE *portnumber_file, bool ssl_enabled) {
@@ -7589,7 +7639,7 @@ static int server_socket(const char *interface,
         port = 0;
     }
     snprintf(port_buf, sizeof(port_buf), "%d", port);
-    error= getaddrinfo(interface, port_buf, &hints, &ai);
+    error= getaddrinfo(iface, port_buf, &hints, &ai);
     if (error != 0) {
         if (error != EAI_SYSTEM)
           fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(error));
@@ -7617,7 +7667,7 @@ static int server_socket(const char *interface,
             error = setsockopt(sfd, IPPROTO_IPV6, IPV6_V6ONLY, (char *) &flags, sizeof(flags));
             if (error != 0) {
                 perror("setsockopt");
-                close(sfd);
+                sock_close(sfd);
                 continue;
             }
         }
@@ -7643,17 +7693,17 @@ static int server_socket(const char *interface,
         if (bind(sfd, next->ai_addr, next->ai_addrlen) == -1) {
             if (errno != EADDRINUSE) {
                 perror("bind()");
-                close(sfd);
+                sock_close(sfd);
                 freeaddrinfo(ai);
                 return 1;
             }
-            close(sfd);
+            sock_close(sfd);
             continue;
         } else {
             success++;
             if (!IS_UDP(transport) && listen(sfd, settings.backlog) == -1) {
                 perror("listen()");
-                close(sfd);
+                sock_close(sfd);
                 freeaddrinfo(ai);
                 return 1;
             }
@@ -7812,6 +7862,7 @@ static int server_sockets(int port, enum network_transport transport,
     }
 }
 
+#ifndef DISABLE_UNIX_SOCKET
 static int new_socket_unix(void) {
     int sfd;
     int flags;
@@ -7824,7 +7875,7 @@ static int new_socket_unix(void) {
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 ||
         fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
         perror("setting O_NONBLOCK");
-        close(sfd);
+        sock_close(sfd);
         return -1;
     }
     return sfd;
@@ -7870,14 +7921,14 @@ static int server_socket_unix(const char *path, int access_mask) {
     old_umask = umask( ~(access_mask&0777));
     if (bind(sfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         perror("bind()");
-        close(sfd);
+        sock_close(sfd);
         umask(old_umask);
         return 1;
     }
     umask(old_umask);
     if (listen(sfd, settings.backlog) == -1) {
         perror("listen()");
-        close(sfd);
+        sock_close(sfd);
         return 1;
     }
     if (!(listen_conn = conn_new(sfd, conn_listening,
@@ -7889,6 +7940,7 @@ static int server_socket_unix(const char *path, int access_mask) {
 
     return 0;
 }
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
 
 /*
  * We keep the current time of day in a global variable that's updated by a
@@ -7967,21 +8019,31 @@ static void usage(void) {
     printf(PACKAGE " " VERSION "\n");
     printf("-p, --port=<num>          TCP port to listen on (default: %d)\n"
            "-U, --udp-port=<num>      UDP port to listen on (default: %d, off)\n"
+#ifndef DISABLE_UNIX_SOCKET
            "-s, --unix-socket=<file>  UNIX socket to listen on (disables network support)\n"
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
            "-A, --enable-shutdown     enable ascii \"shutdown\" command\n"
+#ifndef DISABLE_UNIX_SOCKET
            "-a, --unix-mask=<mask>    access mask for UNIX socket, in octal (default: %o)\n"
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
            "-l, --listen=<addr>       interface to listen on (default: INADDR_ANY)\n"
 #ifdef TLS
            "                          if TLS/SSL is enabled, 'notls' prefix can be used to\n"
            "                          disable for specific listeners (-l notls:<ip>:<port>) \n"
 #endif
            "-d, --daemon              run as a daemon\n"
+#ifndef DISABLE_COREDUMP
            "-r, --enable-coredumps    maximize core file limit\n"
+#endif /* #ifndef DISABLE_COREDUMP */
+#ifndef DISABLE_RUNAS_USER
            "-u, --user=<user>         assume identity of <username> (only when run as root)\n"
+#endif /* #ifndef DISABLE_RUNAS_USER */
            "-m, --memory-limit=<num>  item memory in megabytes (default: %lu)\n"
            "-M, --disable-evictions   return error on memory exhausted instead of evicting\n"
            "-c, --conn-limit=<num>    max simultaneous connections (default: %d)\n"
+#ifndef DISABLE_MLOCKALL
            "-k, --lock-memory         lock down all paged memory\n"
+#endif /* #ifndef DISABLE_MLOCKALL */
            "-v, --verbose             verbose (print errors/warnings while in event loop)\n"
            "-vv                       very verbose (also print client commands/responses)\n"
            "-vvv                      extremely verbose (internal state transitions)\n"
@@ -7991,7 +8053,11 @@ static void usage(void) {
            "-P, --pidfile=<file>      save PID in <file>, only used with -d option\n"
            "-f, --slab-growth-factor=<num> chunk size growth factor (default: %2.2f)\n"
            "-n, --slab-min-size=<bytes> min space used for key+value+flags (default: %d)\n",
-           settings.port, settings.udpport, settings.access, (unsigned long) settings.maxbytes / (1 << 20),
+           settings.port, settings.udpport,
+#ifndef DISABLE_UNIX_SOCKET
+           settings.access,
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
+           (unsigned long) settings.maxbytes / (1 << 20),
            settings.maxconns, settings.factor, settings.chunk_size);
     verify_default("udp-port",settings.udpport == 0);
     printf("-L, --enable-largepages  try to use large memory pages (if available)\n");
@@ -8239,6 +8305,13 @@ static void save_pid(const char *pid_file) {
         vperror("Could not close the pid file %s", tmp_pid_file);
     }
 
+#ifdef _WIN32
+    /* In Windows, rename will have errors if the target exists.
+     * As a workaround, delete first the file
+     */
+    unlink(pid_file);
+#endif /* #ifdef _WIN32 */
+
     if (rename(tmp_pid_file, pid_file) != 0) {
         vperror("Could not rename the pid file from %s to %s",
                 tmp_pid_file, pid_file);
@@ -8256,18 +8329,20 @@ static void remove_pidfile(const char *pid_file) {
 }
 
 static void sig_handler(const int sig) {
-    printf("Signal handled: %s.\n", strsignal(sig));
+    printf("Signal handled: %s(%d).\n", strsignal(sig), sig);
     exit(EXIT_SUCCESS);
 }
 
+#ifndef WINDOWS_ONLY_SIGNALS
 static void sighup_handler(const int sig) {
     settings.sig_hup = true;
 }
 
 static void sig_usrhandler(const int sig) {
-    printf("Graceful shutdown signal handled: %s.\n", strsignal(sig));
+    printf("Graceful shutdown signal handled: %s(%d).\n", strsignal(sig), sig);
     stop_main_loop = true;
 }
+#endif /* #ifndef WINDOWS_ONLY_SIGNALS */
 
 #ifndef HAVE_SIGIGNORE
 static int sigignore(int sig) {
@@ -8279,7 +8354,6 @@ static int sigignore(int sig) {
     return 0;
 }
 #endif
-
 
 /*
  * On systems that supports multiple page sizes we may reduce the
@@ -8701,15 +8775,23 @@ static int _mc_meta_load_cb(const char *tag, void *ctx, void *data) {
 
 int main (int argc, char **argv) {
     int c;
+#ifndef DISABLE_MLOCKALL
     bool lock_memory = false;
+#endif /* #ifndef DISABLE_MLOCKALL */
     bool do_daemonize = false;
     bool preallocate = false;
+#ifndef DISABLE_COREDUMP
     int maxcore = 0;
+    struct rlimit rlim;
+#endif /* #ifndef DISABLE_COREDUMP */
+#ifndef DISABLE_RUNAS_USER
     char *username = NULL;
+#endif /* #ifndef DISABLE_RUNAS_USER */
     char *pid_file = NULL;
     char *memory_file = NULL;
+#ifndef DISABLE_RUNAS_USER
     struct passwd *pw;
-    struct rlimit rlim;
+#endif /* #ifndef DISABLE_RUNAS_USER */
     char *buf;
     char unit = '\0';
     int size_max = 0;
@@ -8877,6 +8959,15 @@ int main (int argc, char **argv) {
         NULL
     };
 
+#ifdef _WIN32
+    // Initialize Winsock
+    if (sock_startup()) {
+        fprintf(stderr, "Winsock initialization failed!\n");
+        free(meta);
+        return EX_OSERR;
+    }
+#endif /* #ifdef _WIN32 */
+
     if (!sanitycheck()) {
         free(meta);
         return EX_OSERR;
@@ -8884,9 +8975,11 @@ int main (int argc, char **argv) {
 
     /* handle SIGINT, SIGTERM */
     signal(SIGINT, sig_handler);
+#ifndef WINDOWS_ONLY_SIGNALS
     signal(SIGTERM, sig_handler);
     signal(SIGHUP, sighup_handler);
     signal(SIGUSR1, sig_usrhandler);
+#endif /* #ifndef WINDOWS_ONLY_SIGNALS */
 
     /* init settings */
     settings_init();
@@ -8919,22 +9012,30 @@ int main (int argc, char **argv) {
     setbuf(stderr, NULL);
 
     char *shortopts =
+#ifndef DISABLE_UNIX_SOCKET
           "a:"  /* access mask for unix socket */
-          "A"   /* enable admin shutdown command */
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
+          "A"  /* enable admin shutdown command */
           "Z"   /* enable SSL */
           "p:"  /* TCP port number to listen on */
+#ifndef DISABLE_UNIX_SOCKET
           "s:"  /* unix socket path to listen on */
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
           "U:"  /* UDP port number to listen on */
           "m:"  /* max memory to use for items in megabytes */
           "M"   /* return error on memory exhausted */
           "c:"  /* max simultaneous connections */
+#ifndef DISABLE_MLOCKALL
           "k"   /* lock down all paged memory */
+#endif /* #ifndef DISABLE_MLOCKALL */
           "hiV" /* help, licence info, version */
           "r"   /* maximize core file limit */
           "v"   /* verbose */
           "d"   /* daemon mode */
           "l:"  /* interface to listen on */
+#ifndef DISABLE_RUNAS_USER
           "u:"  /* user identity to run as */
+#endif /* #ifndef DISABLE_RUNAS_USER */
           "P:"  /* save PID in file */
           "f:"  /* factor? */
           "n:"  /* minimum space allocated for key+value+flags */
@@ -8958,24 +9059,34 @@ int main (int argc, char **argv) {
     /* process arguments */
 #ifdef HAVE_GETOPT_LONG
     const struct option longopts[] = {
+#ifndef DISABLE_UNIX_SOCKET
         {"unix-mask", required_argument, 0, 'a'},
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
         {"enable-shutdown", no_argument, 0, 'A'},
         {"enable-ssl", no_argument, 0, 'Z'},
         {"port", required_argument, 0, 'p'},
+#ifndef DISABLE_UNIX_SOCKET
         {"unix-socket", required_argument, 0, 's'},
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
         {"udp-port", required_argument, 0, 'U'},
         {"memory-limit", required_argument, 0, 'm'},
         {"disable-evictions", no_argument, 0, 'M'},
         {"conn-limit", required_argument, 0, 'c'},
+#ifndef DISABLE_MLOCKALL
         {"lock-memory", no_argument, 0, 'k'},
+#endif /* #ifndef DISABLE_MLOCKALL */
         {"help", no_argument, 0, 'h'},
         {"license", no_argument, 0, 'i'},
         {"version", no_argument, 0, 'V'},
+#ifndef DISABLE_COREDUMP
         {"enable-coredumps", no_argument, 0, 'r'},
+#endif /* #ifndef DISABLE_COREDUMP */
         {"verbose", optional_argument, 0, 'v'},
         {"daemon", no_argument, 0, 'd'},
         {"listen", required_argument, 0, 'l'},
+#ifndef DISABLE_RUNAS_USER
         {"user", required_argument, 0, 'u'},
+#endif /* #ifndef DISABLE_RUNAS_USER */
         {"pidfile", required_argument, 0, 'P'},
         {"slab-growth-factor", required_argument, 0, 'f'},
         {"slab-min-size", required_argument, 0, 'n'},
@@ -9015,10 +9126,12 @@ int main (int argc, char **argv) {
             exit(EX_USAGE);
 #endif
             break;
+#ifndef DISABLE_UNIX_SOCKET
         case 'a':
             /* access for unix domain socket, as octal mask (like chmod)*/
             settings.access= strtol(optarg,NULL,8);
             break;
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
         case 'U':
             settings.udpport = atoi(optarg);
             udp_specified = true;
@@ -9027,9 +9140,11 @@ int main (int argc, char **argv) {
             settings.port = atoi(optarg);
             tcp_specified = true;
             break;
+#ifndef DISABLE_UNIX_SOCKET
         case 's':
             settings.socketpath = optarg;
             break;
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
         case 'm':
             settings.maxbytes = ((size_t)atoi(optarg)) * 1024 * 1024;
             break;
@@ -9052,9 +9167,11 @@ int main (int argc, char **argv) {
         case 'V':
             printf(PACKAGE " " VERSION "\n");
             exit(EXIT_SUCCESS);
+#ifndef DISABLE_MLOCKALL
         case 'k':
             lock_memory = true;
             break;
+#endif /* #ifndef DISABLE_MLOCKALL */
         case 'v':
             settings.verbose++;
             break;
@@ -9077,11 +9194,20 @@ int main (int argc, char **argv) {
             }
             break;
         case 'd':
+#ifdef _WIN32
+            /* Daemon mode in Windows will just run the same command line in background
+             * and exits immediately the calling process. It's using an env key for
+             * the child process not to exit and proceed as normal process.
+             */
+            daemonize_cmd(argv, "MEMCACHE_DAEMON_ENV");
+#endif /* #ifdef _WIN32 */
             do_daemonize = true;
             break;
+#ifndef DISABLE_COREDUMP
         case 'r':
             maxcore = 1;
             break;
+#endif /* #ifndef DISABLE_COREDUMP */
         case 'R':
             settings.reqs_per_event = atoi(optarg);
             if (settings.reqs_per_event == 0) {
@@ -9089,9 +9215,11 @@ int main (int argc, char **argv) {
                 return 1;
             }
             break;
+#ifndef DISABLE_RUNAS_USER
         case 'u':
             username = optarg;
             break;
+#endif /* #ifndef DISABLE_RUNAS_USER */
         case 'P':
             pid_file = optarg;
             break;
@@ -9886,6 +10014,7 @@ int main (int argc, char **argv) {
     }
 #endif
 
+#ifndef DISABLE_COREDUMP
     if (maxcore != 0) {
         struct rlimit rlim_new;
         /*
@@ -9911,12 +10040,13 @@ int main (int argc, char **argv) {
             exit(EX_OSERR);
         }
     }
+#endif /* #ifndef DISABLE_COREDUMP */
 
     /*
      * If needed, increase rlimits to allow as many connections
      * as needed.
      */
-
+#ifndef DISABLE_RLIMIT_NOFILE
     if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
         fprintf(stderr, "failed to getrlimit number of files\n");
         exit(EX_OSERR);
@@ -9928,7 +10058,9 @@ int main (int argc, char **argv) {
             exit(EX_OSERR);
         }
     }
+#endif /* #ifndef DISABLE_RLIMIT_NOFILE */
 
+#ifndef DISABLE_RUNAS_USER
     /* lose root privileges if we have them */
     if (getuid() == 0 || geteuid() == 0) {
         if (username == 0 || *username == '\0') {
@@ -9958,12 +10090,14 @@ int main (int argc, char **argv) {
             exit(EX_OSERR);
         }
     }
+#endif /* #ifndef DISABLE_RUNAS_USER */
 
     /* Initialize Sasl if -S was specified */
     if (settings.sasl) {
         init_sasl();
     }
 
+#ifndef _WIN32
     /* daemonize if requested */
     /* if we want to ensure our ability to dump core, don't chdir to / */
     if (do_daemonize) {
@@ -9975,7 +10109,9 @@ int main (int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
     }
+#endif /* #ifndef _WIN32 */
 
+#ifndef DISABLE_MLOCKALL
     /* lock paged memory if needed */
     if (lock_memory) {
 #ifdef HAVE_MLOCKALL
@@ -9988,6 +10124,7 @@ int main (int argc, char **argv) {
         fprintf(stderr, "warning: -k invalid, mlockall() not supported on this platform.  proceeding without.\n");
 #endif
     }
+#endif /* #ifndef DISABLE_MLOCKALL */
 
     /* initialize main thread libevent instance */
 #if defined(LIBEVENT_VERSION_NUMBER) && LIBEVENT_VERSION_NUMBER >= 0x02000101
@@ -10112,6 +10249,7 @@ int main (int argc, char **argv) {
         // insane.
         restart_fixup((void *)old_base);
     }
+#ifndef WINDOWS_ONLY_SIGNALS
     /*
      * ignore SIGPIPE signals; we can use errno == EPIPE if we
      * need that information
@@ -10120,6 +10258,7 @@ int main (int argc, char **argv) {
         perror("failed to ignore SIGPIPE; sigaction");
         exit(EX_OSERR);
     }
+#endif /* #ifndef WINDOWS_ONLY_SIGNALS */
     /* start up worker threads if MT mode */
 #ifdef EXTSTORE
     slabs_set_storage(storage);
@@ -10187,6 +10326,7 @@ int main (int argc, char **argv) {
 #endif
     clock_handler(0, 0, 0);
 
+#ifndef DISABLE_UNIX_SOCKET
     /* create unix mode sockets after dropping privileges */
     if (settings.socketpath != NULL) {
         errno = 0;
@@ -10197,7 +10337,9 @@ int main (int argc, char **argv) {
     }
 
     /* create the listening socket, bind it, and init */
-    if (settings.socketpath == NULL) {
+    if (settings.socketpath == NULL)
+#endif /* #ifndef DISABLE_UNIX_SOCKET */
+    {
         const char *portnumber_filename = getenv("MEMCACHED_PORT_FILENAME");
         char *temp_portnumber_filename = NULL;
         size_t len;
@@ -10285,6 +10427,7 @@ int main (int argc, char **argv) {
     /* remove the PID file if we're a daemon */
     if (do_daemonize)
         remove_pidfile(pid_file);
+
     /* Clean up strdup() call for bind() address */
     if (settings.inter)
       free(settings.inter);
@@ -10293,6 +10436,10 @@ int main (int argc, char **argv) {
     event_base_free(main_base);
 
     free(meta);
+
+#ifdef _WIN32
+    sock_cleanup();
+#endif /* #ifdef _WIN32 */
 
     return retval;
 }
