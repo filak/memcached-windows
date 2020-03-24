@@ -105,13 +105,11 @@ run_crusher_test() {
   MEMCACHED_CURDIR="${PWD}"
   cd "${MEMCACHED_SRCDIR}"
   ./autogen.sh
-  cd "${MEMCACHED_CURDIR}"
-  "${MEMCACHED_SRCDIR}/configure" ${options}
   # memcached's version is generated using git describe (see version.sh) and the
   # value is unknown/empty/error on some environment so just replace to make sure.
-  sed -i 's@#define PACKAGE_VERSION .*@#define PACKAGE_VERSION "'"${_VER}"'"@' config.h
-  sed -i 's@#define VERSION .*@#define VERSION "'"${_VER}"'"@' config.h
-  sed -i 's@#define PACKAGE_STRING .*@#define PACKAGE_STRING "'"memcached ${_VER}"'"@' config.h
+  echo "m4_define([VERSION_NUMBER], [${_VER}])" > version.m4
+  cd "${MEMCACHED_CURDIR}"
+  "${MEMCACHED_SRCDIR}/configure" ${options}
   make -j 2
   _pkg='pkg/usr/local'
   mkdir -p "${_pkg}/bin"
@@ -125,7 +123,7 @@ run_crusher_test() {
 
   # Make steps for determinism
 
-  readonly _ref="$(realpath "../memcached-${MEMCACHED_VER_}.tar.gz")"
+  readonly _ref="$(realpath "../memcached-${_VER}.tar.gz")"
 
   ../_peclean.py "${_ref}" ${_pkg}/bin/*.exe
 
