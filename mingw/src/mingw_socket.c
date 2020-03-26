@@ -32,7 +32,7 @@ struct wsa_errno_info {
     int wsa_err;
     int errno_err;
 };
-int conv_wsaerr_to_errno(int wsa_err) {
+static int conv_wsaerr_to_errno(int wsa_err) {
     static const struct wsa_errno_info wsa_errno_tbl[] = {
         {WSAEWOULDBLOCK,		EWOULDBLOCK},
         {WSAEBADF,				EBADF},
