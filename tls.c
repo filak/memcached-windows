@@ -32,7 +32,26 @@ ssize_t ssl_read(conn *c, void *buf, size_t count) {
     /* TODO : document the state machine interactions for SSL_read with
         non-blocking sockets/ SSL re-negotiations
     */
+#ifndef _WIN32
     return SSL_read(c->ssl, buf, count);
+#else
+    /* Still using OpenSSL but will set expected/correct errno if error for memcached */
+    return WinSSL_read(c->ssl, buf, count);
+#endif /* #ifndef _WIN32 */
+}
+
+/*
+ * Writes data to the underlying BIO write buffers,
+ * which encrypt and write them to the socket.
+ */
+ssize_t ssl_write(conn *c, void *buf, size_t count) {
+    assert (c != NULL);
+#ifndef _WIN32
+    return SSL_write(c->ssl, buf, count);
+#else
+    /* Still using OpenSSL but will set expected/correct errno if error for memcached */
+    return WinSSL_write(c->ssl, buf, count);
+#endif /* #ifndef _WIN32 */
 }
 
 /*
@@ -69,16 +88,7 @@ ssize_t ssl_sendmsg(conn *c, struct msghdr *msg, int flags) {
     /* TODO : document the state machine interactions for SSL_write with
         non-blocking sockets/ SSL re-negotiations
     */
-    return SSL_write(c->ssl, c->ssl_wbuf, bytes);
-}
-
-/*
- * Writes data to the underlying BIO write buffers,
- * which encrypt and write them to the socket.
- */
-ssize_t ssl_write(conn *c, void *buf, size_t count) {
-    assert (c != NULL);
-    return SSL_write(c->ssl, buf, count);
+    return ssl_write(c, c->ssl_wbuf, bytes);
 }
 
 /*
@@ -165,6 +175,10 @@ int ssl_init(void) {
     return 0;
 }
 
+/* BoringSSL rejects peer renegotiations by default.
+ * See https://boringssl.googlesource.com/boringssl/+/HEAD/PORTING.md
+ */
+#ifndef OPENSSL_IS_BORINGSSL
 /*
  * This method is registered with each SSL connection and abort the SSL session
  * if a client initiates a renegotiation.
@@ -183,6 +197,7 @@ void ssl_callback(const SSL *s, int where, int ret) {
         return;
     }
 }
+#endif /* #ifndef OPENSSL_IS_BORINGSSL */
 
 bool refresh_certs(char **errmsg) {
     return load_server_certificates(errmsg);

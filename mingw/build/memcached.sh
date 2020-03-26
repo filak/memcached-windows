@@ -90,16 +90,24 @@ run_crusher_test() {
   find . -name '*.Plo' -type f -delete
   find . -name '*.pc'  -type f -delete
 
+  # Download the pre-built OpenSSL binaries
+  OPENSSL_ARCHIVE_NAME="openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
+  OPENSSL_ARCHIVE_FILE="${OPENSSL_ARCHIVE_NAME}.zip"
+  rm -rf "${OPENSSL_ARCHIVE_NAME}"
+  curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o "${OPENSSL_ARCHIVE_FILE}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_FILE}"
+  unzip "${OPENSSL_ARCHIVE_FILE}" >/dev/null 2>&1
+
   options=''
   options="${options} --host=${_TRIPLET}"
   options="${options} --disable-extstore"
-  options="${options} --disable-tls"
+  options="${options} --enable-tls"
   options="${options} --disable-seccomp"
   options="${options} --disable-sasl"
   options="${options} --disable-sasl-pwdb"
   options="${options} --disable-coverage"
   options="${options} --disable-docs"
   export ac_cv_libevent_dir="$(realpath "$(dirname $0)/..")/libevent/pkg/usr/local"
+  export ac_cv_libssl_dir="${PWD}/${OPENSSL_ARCHIVE_NAME}"
 
   MEMCACHED_SRCDIR="$(realpath ../../../)"
   MEMCACHED_CURDIR="${PWD}"
@@ -114,7 +122,6 @@ run_crusher_test() {
   _pkg='pkg/usr/local'
   mkdir -p "${_pkg}/bin"
   mkdir -p "${_pkg}/include"
-  mkdir -p "${_pkg}/tests"
   cp -a *.exe "${_pkg}/bin"
   cp -a config.h "${_pkg}/include"
 
@@ -136,13 +143,15 @@ run_crusher_test() {
 
   "${_CCPREFIX}objdump" -x ${_pkg}/bin/*.exe | grep -E -i "(file format|dll name)"
 
-  make test | tee "${_pkg}/tests/make_test.log"
+  make test
+
+  # make test_tls needs the t dir, just symlink here
+  ln -s "${MEMCACHED_SRCDIR}/t"
+  make test_tls
 
   if [ -n "${CRUSHER_TEST}" ]; then
     run_crusher_test > "${_pkg}/tests/mc-crusher.log" 2>&1
   fi
-
-  touch -c -r "${_ref}" ${_pkg}/tests/*.log
 
   # Create package
 
@@ -153,10 +162,8 @@ run_crusher_test() {
 
   cp -f -a ${_pkg}/bin      "${_DST}/"
   cp -f -a ${_pkg}/include  "${_DST}/"
-  cp -f -a ${_pkg}/tests     "${_DST}/"
 
   unix2dos -q -k "${_DST}"/*.txt
-  unix2dos -q -k "${_DST}"/tests/*.log
 
   ../_pack.sh "${_ref}"
   _NAM="${_NAM}-windows" ../_ul.sh

@@ -3,6 +3,9 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#ifdef TLS
+#include <openssl/ssl.h>
+#endif
 
 typedef unsigned short in_port_t;
 
@@ -21,6 +24,12 @@ ssize_t sendmsg(int socket, const struct msghdr *message, int flags);
 ssize_t sock_write(int fd, const void *buf, size_t count);
 ssize_t sock_read(int fd, void *buf, size_t nbyte);
 int sock_close(int fd);
+#ifdef TLS
+int WinSSL_accept(SSL *ssl);
+int WinSSL_connect(SSL *ssl);
+int WinSSL_write(SSL *ssl, const void *buf, int num);
+int WinSSL_read(SSL *ssl, void *buf, int num);
+#endif
 
 #endif // SOCKET_H_INCLUDED
 

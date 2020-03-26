@@ -83,12 +83,22 @@ ssize_t tcp_write(struct conn *c, const void *buf, size_t count) {
 #ifdef TLS
 ssize_t ssl_read(struct conn *c, void *buf, size_t count) {
     assert(c != NULL);
+#ifndef _WIN32
     return SSL_read(c->ssl, buf, count);
+#else
+    /* Still using OpenSSL but will set expected/correct errno if error for memcached */
+    return WinSSL_read(c->ssl, buf, count);
+#endif /* #ifndef _WIN32 */
 }
 
 ssize_t ssl_write(struct conn *c, const void *buf, size_t count) {
     assert(c != NULL);
+#ifndef _WIN32
     return SSL_write(c->ssl, buf, count);
+#else
+    /* Still using OpenSSL but will set expected/correct errno if error for memcached */
+    return WinSSL_write(c->ssl, buf, count);
+#endif /* #ifndef _WIN32 */
 }
 #endif
 
@@ -772,7 +782,11 @@ static struct conn *connect_server(const char *hostname, in_port_t port,
             sock = -1;
         }
         SSL_set_fd (c->ssl, c->sock);
+#ifndef _WIN32
         int ret = SSL_connect(c->ssl);
+#else
+        int ret = WinSSL_connect(c->ssl);
+#endif /* #ifndef _WIN32 */
         if (ret < 0) {
             int err = SSL_get_error(c->ssl, ret);
             if (err == SSL_ERROR_SYSCALL || err == SSL_ERROR_SSL) {

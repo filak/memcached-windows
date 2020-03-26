@@ -727,7 +727,9 @@ conn *conn_new(const int sfd, enum conn_states init_state,
         c->sendmsg = ssl_sendmsg;
         c->write = ssl_write;
         c->ssl_enabled = true;
+#ifndef OPENSSL_IS_BORINGSSL
         SSL_set_info_callback(c->ssl, ssl_callback);
+#endif /* #ifndef OPENSSL_IS_BORINGSSL */
     } else
 #else
     // This must be NULL if TLS is not enabled.
@@ -7069,7 +7071,11 @@ static void drive_machine(conn *c) {
                         break;
                     }
                     SSL_set_fd(ssl, sfd);
+#ifndef _WIN32
                     int ret = SSL_accept(ssl);
+#else
+                    int ret = WinSSL_accept(ssl);
+#endif /* #ifndef _WIN32 */
                     if (ret <= 0) {
                         int err = SSL_get_error(ssl, ret);
                         if (err == SSL_ERROR_SYSCALL || err == SSL_ERROR_SSL) {

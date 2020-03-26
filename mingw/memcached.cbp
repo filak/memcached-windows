@@ -37,6 +37,7 @@
 			<Add option="-D__USE_MINGW_ANSI_STDIO" />
 			<Add option="-D_WIN32_WINNT=0x0601" />
 			<Add option="-DWIN32_LEAN_AND_MEAN" />
+			<Add option="-DTLS" />
 			<Add option="-DDISABLE_UNIX_SOCKET" />
 			<Add option="-DDISABLE_RUNAS_USER" />
 			<Add option="-DWINDOWS_ONLY_SIGNALS" />
@@ -47,10 +48,12 @@
 			<Add directory="include" />
 			<Add directory="src" />
 			<Add directory="$(LIBEVENTDIR)/include" />
+			<Add directory="$(OPENSSLDIR)/include" />
 		</Compiler>
 		<Linker>
-			<Add option="-Wl,-Bstatic -levent -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
+			<Add option="-Wl,-Bstatic -levent -Wl,-Bstatic -lssl -Wl,-Bstatic -lcrypto -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
 			<Add directory="$(LIBEVENTDIR)/lib" />
+			<Add directory="$(OPENSSLDIR)/lib" />
 		</Linker>
 		<Unit filename="../assoc.c">
 			<Option compilerVar="CC" />
@@ -119,6 +122,10 @@
 		<Unit filename="../thread.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../tls.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../tls.h" />
 		<Unit filename="../trace.h" />
 		<Unit filename="../util.c">
 			<Option compilerVar="CC" />

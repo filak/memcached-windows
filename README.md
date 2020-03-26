@@ -16,7 +16,6 @@ Main logic is same as the official except for the necessary platform-specific ch
 
 * **sasl** (Upstream support since v1.4.3)
 * **extstore** (Upstream support since v1.5.4)
-* **tls** (Upstream support since v1.5.13)
 * **-u/user** (Can use Windows __*runas*__ command or Windows **explorer**'s __*Run as different user*__ context menu)
 * **-s/unix-socket** (Windows does not currently support Unix domain socket) 
 * **-k/lock-memory** (Windows does not currently support locking of all paged memory)
@@ -29,9 +28,11 @@ Main logic is same as the official except for the necessary platform-specific ch
 * Download **config.h** from https://bintray.com/jefty/generic/memcached-windows/_latestVersion (e.g. 	
 *memcached-x.x.x-win64-mingw.zip/include/config.h*) and save in memcached root directory.
 * Build [libevent](https://libevent.org/)'s static library or download pre-built from https://bintray.com/jefty/generic/libevent-windows/_latestVersion
+* Build [OpenSSL](https://www.openssl.org/)'s static library or download pre-built from https://bintray.com/vszakats/generic/openssl/_latestVersion
 * Download, install, and run [Code::Blocks IDE](http://www.codeblocks.org/downloads)
 * Set the installed MinGW as the default compiler of Code::Blocks IDE
 * Set the default compiler's **LIBEVENTDIR** custom variables to the location of libevent (dir with include and lib subdirs).
+* Set the default compiler's **OPENSSLDIR** custom variables to the location of libevent (dir with include and lib subdirs).
 * Open **mingw/memcached.workspace** workspace from **Code::Blocks IDE**
 * Build and/or debug using the IDE
 * Artifacts: **mingw/bin/Debug**, **mingw/bin/Release**
@@ -39,7 +40,8 @@ Main logic is same as the official except for the necessary platform-specific ch
 ## Building on Linux Host (configure)
 
 * Install **gcc-mingw-w64 autoconf automake libtool**
-* Cross-build libevent's static library or download pre-built from https://bintray.com/jefty/generic/libevent-windows/_latestVersion
+* Cross-build [libevent](https://libevent.org/)'s static library or download pre-built from https://bintray.com/jefty/generic/libevent-windows/_latestVersion
+* Cross-build [OpenSSL](https://www.openssl.org/)'s static library or download pre-built from https://bintray.com/vszakats/generic/openssl/_latestVersion
 * *./autogen.sh*
 * *ac_cv_libevent_dir=/path/to/libevent ./configure --host=(x86_64/i686)-w64-mingw32 --disable-extstore --disable-seccomp --disable-sasl  --disable-sasl-pwdb --disable-tls --disable-coverage --disable-docs*
 * *make*

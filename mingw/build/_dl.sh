@@ -5,6 +5,7 @@ export MEMCACHED_HASH=06720118c40689be0b85249b3dcb23c6e6d5e3ce53893aca9faced2641
 export MC_CRUSHER_VER_='master'
 export LIBEVENT_VER_='2.1.11-stable'
 export LIBEVENT_HASH=a65bac6202ea8c5609fd5c7e480e6d25de467ea1917c08290c521752f147283d
+export OPENSSL_VER_='1.1.1d'
 export OSSLSIGNCODE_VER_='1.7.1'
 export OSSLSIGNCODE_HASH=f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9
 
@@ -37,6 +38,7 @@ if [ "${os}" != 'win' ]; then
 fi
 
 alias curl='curl -fsSR --connect-timeout 15 -m 20 --retry 3'
+alias wget='wget -nv --timeout=15 --tries=3 --https-only'
 
 if [ "${_BRANCH#*dev*}" != "${_BRANCH}" ]; then
   _patsuf='.dev'
@@ -56,7 +58,7 @@ rm -f -r libevent && mv libevent-* libevent
 
 # Official memcached to be used in timestamping since it has no Changelog that can be used as reference
 rm -f "memcached-${MEMCACHED_VER_}.tar.gz"
-curl -o pack.bin -L --proto-redir =https "http://www.memcached.org/files/memcached-${MEMCACHED_VER_}.tar.gz" || exit 1
+curl -o pack.bin -L --proto-redir =https "https://www.memcached.org/files/memcached-${MEMCACHED_VER_}.tar.gz" || exit 1
 openssl dgst -sha256 pack.bin | grep -q "${MEMCACHED_HASH}" || exit 1
 mv pack.bin "memcached-${MEMCACHED_VER_}.tar.gz"
 
