@@ -36,6 +36,7 @@
 			<Add option="-D_GNU_SOURCE" />
 			<Add option="-D__USE_MINGW_ANSI_STDIO" />
 			<Add option="-D_WIN32_WINNT=0x0601" />
+			<Add option="-DWIN32_LEAN_AND_MEAN" />
 			<Add option="-DDISABLE_UNIX_SOCKET" />
 			<Add option="-DDISABLE_RUNAS_USER" />
 			<Add option="-DWINDOWS_ONLY_SIGNALS" />
