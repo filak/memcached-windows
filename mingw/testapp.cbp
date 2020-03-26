@@ -37,6 +37,7 @@
 			<Add option="-D__USE_MINGW_ANSI_STDIO" />
 			<Add option="-D_WIN32_WINNT=0x0601" />
 			<Add option="-DWIN32_LEAN_AND_MEAN" />
+			<Add option="-DTLS" />
 			<Add option="-DDISABLE_UNIX_SOCKET" />
 			<Add option="-DDISABLE_SIGIGNORE" />
 			<Add option="-DDISABLE_RUNAS_USER" />
@@ -45,13 +46,15 @@
 			<Add option="-DDISABLE_MLOCKALL" />
 			<Add option="-DDISABLE_PIPE" />
 			<Add option='-DMEMCACHED_EXE=\&quot;memcached.exe\&quot;' />
-			<Add directory="." />
+			<Add directory=".." />
 			<Add directory="include" />
 			<Add directory="$(LIBEVENTDIR)/include" />
+			<Add directory="$(OPENSSLDIR)/include" />
 		</Compiler>
 		<Linker>
-			<Add option="-Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
+			<Add option="-Wl,-Bstatic -lssl -Wl,-Bstatic -lcrypto -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
 			<Add directory="$(LIBEVENTDIR)/lib" />
+			<Add directory="$(OPENSSLDIR)/lib" />
 		</Linker>
 		<Unit filename="../cache.c">
 			<Option compilerVar="CC" />

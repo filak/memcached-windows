@@ -6,6 +6,9 @@
  * also initialize Winsock before doing socket-related calls that's why
  * sock_startup call is added to @ref main and sock_cleanup for cleanup.
  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <sys/socket.h>
 #include <event2/event.h>
 #include <poll.h>
@@ -23,9 +26,12 @@
 #endif /* #ifdef SOCKET_API_LOG */
 #ifdef SOCKET_API_ERROR_LOG
 #define SOCKET_API_LOG_IF_ERROR(sock, rc)         \
-		do {if(rc == -1){MINGW_ERROR_LOG("sock:%d rc: %d errno: %d WSAGetLastError: %d\n", sock, (int)rc, errno, WSAGetLastError());}} while(0)
+		do {if(rc == -1){MINGW_ERROR_LOG("sock:%d rc:%d errno:%d WSAGetLastError:%d\n", sock, (int)rc, errno, WSAGetLastError());}} while(0)
+#define TLS_API_LOG_IF_ERROR(tls, rc)         \
+		do {if(rc == -1){MINGW_ERROR_LOG("tls:%p[sock:%d] rc:%d SSL_get_error:%d errno:%d WSAGetLastError:%d\n", tls, SSL_get_fd(tls), (int)rc, SSL_get_error(tls, rc), errno, WSAGetLastError());}} while(0)
 #else
 #define SOCKET_API_LOG_IF_ERROR(sock, rc)			do {} while(0)
+#define TLS_API_LOG_IF_ERROR(tls, rc)			    do {} while(0)
 #endif /* #ifdef SOCKET_API_ERROR_LOG */
 
 struct wsa_errno_info {
@@ -237,6 +243,80 @@ int sock_close(int fd) {
 
     return rc;
 }
+
+#ifdef TLS
+int WinSSL_accept(SSL *ssl)
+{
+    int rc;
+
+    SOCKET_API_PRINTF("%p[sock:%d] {\n", ssl, SSL_get_fd(ssl));
+
+    rc = SSL_accept(ssl);
+    if(rc <= 0) {
+        errno = conv_wsaerr_to_errno(WSAGetLastError());
+    }
+
+    SOCKET_API_PRINTF("%p[sock:%d] } %d\n", ssl, SSL_get_fd(ssl), rc);
+
+    TLS_API_LOG_IF_ERROR(ssl, rc);
+
+    return rc;
+}
+
+int WinSSL_connect(SSL *ssl)
+{
+    int rc;
+
+    SOCKET_API_PRINTF("%p[sock:%d] {\n", ssl, SSL_get_fd(ssl));
+
+    rc = SSL_connect(ssl);
+    if(rc < 0) {
+        errno = conv_wsaerr_to_errno(WSAGetLastError());
+    }
+
+    SOCKET_API_PRINTF("%p[sock:%d] } %d\n", ssl, SSL_get_fd(ssl), rc);
+
+    TLS_API_LOG_IF_ERROR(ssl, rc);
+
+    return rc;
+}
+
+int WinSSL_write(SSL *ssl, const void *buf, int num)
+{
+    int rc;
+
+    SOCKET_API_PRINTF("%p[sock:%d], %p, %d {\n", ssl, SSL_get_fd(ssl), buf, num);
+
+    rc = SSL_write(ssl, buf, num);
+    if(rc < 0) {
+        errno = conv_wsaerr_to_errno(WSAGetLastError());
+    }
+
+    SOCKET_API_PRINTF("%p[sock:%d], %p, %d } %d\n", ssl, SSL_get_fd(ssl), buf, num, rc);
+
+    TLS_API_LOG_IF_ERROR(ssl, rc);
+
+    return rc;
+}
+
+int WinSSL_read(SSL *ssl, void *buf, int num)
+{
+    int rc;
+
+    SOCKET_API_PRINTF("%p[sock:%d], %p, %d {\n", ssl, SSL_get_fd(ssl), buf, num);
+
+    rc = SSL_read(ssl, buf, num);
+    if(rc < 0) {
+        errno = conv_wsaerr_to_errno(WSAGetLastError());
+    }
+
+    SOCKET_API_PRINTF("%p[sock:%d], %p, %d } %d\n", ssl, SSL_get_fd(ssl), buf, num, rc);
+
+    TLS_API_LOG_IF_ERROR(ssl, rc);
+
+    return rc;
+}
+#endif
 
 int fcntl(int fd, int cmd, ... /* arg */ ) {
     int rc = -1;

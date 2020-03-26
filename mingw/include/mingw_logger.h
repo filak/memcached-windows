@@ -16,11 +16,11 @@
 
 #ifdef MINGW_DEBUG
 #define MINGW_DEBUG_LOG(format, ...)	\
-		MINGW_PRINTF_DEBUG("%u:%u %s " format, (unsigned)GetCurrentProcessId(), (unsigned)GetCurrentThreadId(), __func__, __VA_ARGS__)
+		MINGW_PRINTF_DEBUG("[%10u] %u:%u %s " format, (unsigned)GetTickCount(), (unsigned)GetCurrentProcessId(), (unsigned)GetCurrentThreadId(), __func__, __VA_ARGS__)
 #else
 #define MINGW_DEBUG_LOG(format, ...) do {} while(0)
 #endif /* #ifdef MINGW_DEBUG */
 #define MINGW_ERROR_LOG(format, ...)	\
-		MINGW_PRINTF_ERROR ("%u:%u %s " format, (unsigned)GetCurrentProcessId(), (unsigned)GetCurrentThreadId(), __func__, __VA_ARGS__)
+		MINGW_PRINTF_ERROR ("[%10u] %u:%u %s " format, (unsigned)GetTickCount(), (unsigned)GetCurrentProcessId(), (unsigned)GetCurrentThreadId(), __func__, __VA_ARGS__)
 
 #endif // MINGW_LOGGER_H_INCLUDED

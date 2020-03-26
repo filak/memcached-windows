@@ -459,7 +459,11 @@ if test "x$enable_tls" = "xyes"; then
   ])
     fi
   ])
-  LIBS="-lssl -lcrypto $LIBS"
+  if test "x$host_os" != "xmingw32"; then
+    LIBS="-lssl -lcrypto $LIBS"
+  else
+    LIBS="-Wl,-Bstatic -lssl -Wl,-Bstatic -lcrypto $LIBS"
+  fi
   if test $ac_cv_libssl_dir != "(system)"; then
     if test -d "$ac_cv_libssl_dir/lib" ; then
       LDFLAGS="-L$ac_cv_libssl_dir/lib $LDFLAGS"
