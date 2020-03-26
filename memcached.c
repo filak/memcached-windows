@@ -8193,7 +8193,6 @@ static void sig_usrhandler(const int sig) {
     printf("Graceful shutdown signal handled: %s(%d).\n", strsignal(sig), sig);
     stop_main_loop = true;
 }
-#endif /* #ifndef WINDOWS_ONLY_SIGNALS */
 
 #ifndef HAVE_SIGIGNORE
 static int sigignore(int sig) {
@@ -8205,6 +8204,7 @@ static int sigignore(int sig) {
     return 0;
 }
 #endif
+#endif /* #ifndef WINDOWS_ONLY_SIGNALS */
 
 /*
  * On systems that supports multiple page sizes we may reduce the
