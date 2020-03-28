@@ -9,3 +9,4 @@
 #include "mingw_stdio.c"
 #include "mingw_stdlib.c"
 #include "mingw_unistd.c"
+#include "mingw_resource.c"
