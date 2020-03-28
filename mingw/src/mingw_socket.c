@@ -112,7 +112,7 @@ ssize_t sendmsg(int socket, const struct msghdr *message, int flags) {
      */
     if(message->msg_iovlen > 0) {
         wsa_ret = WSASendTo(socket, (LPWSABUF)message->msg_iov, message->msg_iovlen,
-                            &bytes_sent, 0, message->msg_name, message->msg_namelen, NULL, NULL);
+                            &bytes_sent, 0, (const struct sockaddr *)message->msg_name, message->msg_namelen, NULL, NULL);
     } else {
         bytes_sent = 0;
     }
@@ -198,7 +198,7 @@ ssize_t sock_write(int fd, const void *buf, size_t count) {
 
     SOCKET_API_PRINTF("%d, %p, %zu {\n", fd, buf, count);
 
-    rc = send(fd, buf, count, 0);
+    rc = send(fd, (const char *)buf, count, 0);
     if(rc == -1) {
         errno = conv_wsaerr_to_errno(WSAGetLastError());
     }
@@ -215,7 +215,7 @@ ssize_t sock_read(int fd, void *buf, size_t nbyte) {
 
     SOCKET_API_PRINTF("%d, %p, %zu {\n", fd, buf, nbyte);
 
-    rc = recv(fd, buf, nbyte, 0);
+    rc = recv(fd, (char *)buf, nbyte, 0);
     if(rc == -1) {
         errno = conv_wsaerr_to_errno(WSAGetLastError());
     }
