@@ -261,7 +261,7 @@ void syslog( int pri, char* fmt, ... ) {
  * Generate a log message using FMT and using arguments pointed to by AP.
  */
 void vsyslog( int pri, char* fmt, va_list ap ) {
-    static char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    static const char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
                            };
     SYSTEMTIME stm;
