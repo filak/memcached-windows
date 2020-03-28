@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
 //#define UNISTD_API_LOG

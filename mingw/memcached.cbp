@@ -48,12 +48,12 @@
 			<Add directory="include" />
 			<Add directory="src" />
 			<Add directory="$(LIBEVENTDIR)/include" />
-			<Add directory="$(OPENSSLDIR)/include" />
+			<Add directory="$(SSLDIR)/include" />
 		</Compiler>
 		<Linker>
 			<Add option="-Wl,-Bstatic -levent -Wl,-Bstatic -lssl -Wl,-Bstatic -lcrypto -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
 			<Add directory="$(LIBEVENTDIR)/lib" />
-			<Add directory="$(OPENSSLDIR)/lib" />
+			<Add directory="$(SSLDIR)/lib" />
 		</Linker>
 		<Unit filename="../assoc.c">
 			<Option compilerVar="CC" />

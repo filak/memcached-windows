@@ -1,0 +1,47 @@
+diff -uraN boringssl/ssl/ssl_privkey.cc boringssl-zu_format_error/ssl/ssl_privkey.cc
+--- boringssl/ssl/ssl_privkey.cc	2019-12-04 17:49:42.000000000 +0100
++++ boringssl-zu_format_error/ssl/ssl_privkey.cc	2020-03-11 16:25:52.003050939 +0100
+@@ -667,12 +667,12 @@
+       case '+':
+         if (state == hash_name) {
+           OPENSSL_PUT_ERROR(SSL, SSL_R_INVALID_SIGNATURE_ALGORITHM);
+-          ERR_add_error_dataf("+ found in hash name at offset %zu", offset);
++          ERR_add_error_dataf("+ found in hash name at offset %Iu", offset);
+           return false;
+         }
+         if (buf_used == 0) {
+           OPENSSL_PUT_ERROR(SSL, SSL_R_INVALID_SIGNATURE_ALGORITHM);
+-          ERR_add_error_dataf("empty public key type at offset %zu", offset);
++          ERR_add_error_dataf("empty public key type at offset %Iu", offset);
+           return false;
+         }
+         buf[buf_used] = 0;
+@@ -699,7 +699,7 @@
+       case 0:
+         if (buf_used == 0) {
+           OPENSSL_PUT_ERROR(SSL, SSL_R_INVALID_SIGNATURE_ALGORITHM);
+-          ERR_add_error_dataf("empty element at offset %zu", offset);
++          ERR_add_error_dataf("empty element at offset %Iu", offset);
+           return false;
+         }
+ 
+@@ -762,7 +762,7 @@
+       default:
+         if (buf_used == sizeof(buf) - 1) {
+           OPENSSL_PUT_ERROR(SSL, SSL_R_INVALID_SIGNATURE_ALGORITHM);
+-          ERR_add_error_dataf("substring too long at offset %zu", offset);
++          ERR_add_error_dataf("substring too long at offset %Iu", offset);
+           return false;
+         }
+ 
+@@ -771,8 +771,8 @@
+           buf[buf_used++] = c;
+         } else {
+           OPENSSL_PUT_ERROR(SSL, SSL_R_INVALID_SIGNATURE_ALGORITHM);
+-          ERR_add_error_dataf("invalid character 0x%02x at offest %zu", c,
+-                              offset);
++          ERR_add_error_dataf("invalid character 0x%02x at offest %Iu", c,
++                              offset);
+           return false;
+         }
+     }

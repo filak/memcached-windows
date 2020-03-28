@@ -5,7 +5,6 @@ export MEMCACHED_HASH=06720118c40689be0b85249b3dcb23c6e6d5e3ce53893aca9faced2641
 export MC_CRUSHER_VER_='master'
 export LIBEVENT_VER_='2.1.11-stable'
 export LIBEVENT_HASH=a65bac6202ea8c5609fd5c7e480e6d25de467ea1917c08290c521752f147283d
-export OPENSSL_VER_='1.1.1d'
 export OSSLSIGNCODE_VER_='1.7.1'
 export OSSLSIGNCODE_HASH=f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9
 
@@ -55,6 +54,15 @@ tar -xvf pack.bin >/dev/null 2>&1 || exit 1
 rm pack.bin
 rm -f -r libevent && mv libevent-* libevent
 [ -f "libevent${_patsuf}.patch" ] && dos2unix < "libevent${_patsuf}.patch" | patch --batch -N -p1 -d libevent
+
+# BoringSSL version to be used is the %Y%m%d%H%M date format of the
+# https://github.com/google/boringssl/tree/chromium-stable's latest commit
+rm -rf boringssl
+git clone --branch chromium-stable --depth=1 https://github.com/google/boringssl.git
+[ -f "boringssl${_patsuf}.patch" ] && dos2unix < "boringssl${_patsuf}.patch" | patch --batch -N -p1 -d boringssl
+cd boringssl
+export BORINGSSL_VER_="$(git log --date=format:'%Y%m%d%H%M' -1 | sed '3q;d' | awk -F ' ' '{print $2}')"
+cd ..
 
 # Official memcached to be used in timestamping since it has no Changelog that can be used as reference
 rm -f "memcached-${MEMCACHED_VER_}.tar.gz"

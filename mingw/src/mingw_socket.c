@@ -245,8 +245,7 @@ int sock_close(int fd) {
 }
 
 #ifdef TLS
-int WinSSL_accept(SSL *ssl)
-{
+int WinSSL_accept(SSL *ssl) {
     int rc;
 
     SOCKET_API_PRINTF("%p[sock:%d] {\n", ssl, SSL_get_fd(ssl));
@@ -263,8 +262,7 @@ int WinSSL_accept(SSL *ssl)
     return rc;
 }
 
-int WinSSL_connect(SSL *ssl)
-{
+int WinSSL_connect(SSL *ssl) {
     int rc;
 
     SOCKET_API_PRINTF("%p[sock:%d] {\n", ssl, SSL_get_fd(ssl));
@@ -281,8 +279,7 @@ int WinSSL_connect(SSL *ssl)
     return rc;
 }
 
-int WinSSL_write(SSL *ssl, const void *buf, int num)
-{
+int WinSSL_write(SSL *ssl, const void *buf, int num) {
     int rc;
 
     SOCKET_API_PRINTF("%p[sock:%d], %p, %d {\n", ssl, SSL_get_fd(ssl), buf, num);
@@ -299,8 +296,7 @@ int WinSSL_write(SSL *ssl, const void *buf, int num)
     return rc;
 }
 
-int WinSSL_read(SSL *ssl, void *buf, int num)
-{
+int WinSSL_read(SSL *ssl, void *buf, int num) {
     int rc;
 
     SOCKET_API_PRINTF("%p[sock:%d], %p, %d {\n", ssl, SSL_get_fd(ssl), buf, num);
