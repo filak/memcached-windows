@@ -90,13 +90,6 @@ run_crusher_test() {
   find . -name '*.Plo' -type f -delete
   find . -name '*.pc'  -type f -delete
 
-  # Download the pre-built OpenSSL binaries
-  OPENSSL_ARCHIVE_NAME="openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
-  OPENSSL_ARCHIVE_FILE="${OPENSSL_ARCHIVE_NAME}.zip"
-  rm -rf "${OPENSSL_ARCHIVE_NAME}"
-  curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o "${OPENSSL_ARCHIVE_FILE}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_FILE}"
-  unzip "${OPENSSL_ARCHIVE_FILE}" >/dev/null 2>&1
-
   options=''
   options="${options} --host=${_TRIPLET}"
   options="${options} --disable-extstore"
@@ -107,7 +100,7 @@ run_crusher_test() {
   options="${options} --disable-coverage"
   options="${options} --disable-docs"
   export ac_cv_libevent_dir="$(realpath "$(dirname $0)/..")/libevent/pkg/usr/local"
-  export ac_cv_libssl_dir="${PWD}/${OPENSSL_ARCHIVE_NAME}"
+  export ac_cv_libssl_dir="$(realpath "$(dirname $0)/..")/boringssl/pkg/usr/local"
 
   MEMCACHED_SRCDIR="$(realpath ../../../)"
   MEMCACHED_CURDIR="${PWD}"

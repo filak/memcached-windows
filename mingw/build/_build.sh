@@ -114,6 +114,7 @@ build_single_target() {
 
   [ "${_cpu}" = '32' ] && _machine='i686'
   [ "${_cpu}" = '64' ] && _machine='x86_64'
+  export _ARCH="${_machine}"
 
   if [ "${os}" = 'win' ]; then
     export PATH="/mingw${_cpu}/bin:${_ori_path}"
@@ -159,6 +160,7 @@ build_single_target() {
   command -v "$(dirname "$0")/osslsigncode-determ" >/dev/null 2>&1 || unset CODESIGN_KEY
 
   time ./libevent.sh       	"${LIBEVENT_VER_}" "${_cpu}"
+  time ./boringssl.sh       "${BORINGSSL_VER_}" "${_cpu}"
   time ./memcached.sh		"${MEMCACHED_VER_}" "${_cpu}"
 }
 

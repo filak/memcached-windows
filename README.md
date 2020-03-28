@@ -28,11 +28,11 @@ Main logic is same as the official except for the necessary platform-specific ch
 * Download **config.h** from https://bintray.com/jefty/generic/memcached-windows/_latestVersion (e.g. 	
 *memcached-x.x.x-win64-mingw.zip/include/config.h*) and save in memcached root directory.
 * Build [libevent](https://libevent.org/)'s static library or download pre-built from https://bintray.com/jefty/generic/libevent-windows/_latestVersion
-* Build [OpenSSL](https://www.openssl.org/)'s static library or download pre-built from https://bintray.com/vszakats/generic/openssl/_latestVersion
+* Build [boringssl](https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable)'s static library or download pre-built from https://bintray.com/jefty/generic/boringssl-windows/_latestVersion
 * Download, install, and run [Code::Blocks IDE](http://www.codeblocks.org/downloads)
 * Set the installed MinGW as the default compiler of Code::Blocks IDE
 * Set the default compiler's **LIBEVENTDIR** custom variables to the location of libevent (dir with include and lib subdirs).
-* Set the default compiler's **OPENSSLDIR** custom variables to the location of libevent (dir with include and lib subdirs).
+* Set the default compiler's **SSLDIR** custom variables to the location of libevent (dir with include and lib subdirs).
 * Open **mingw/memcached.workspace** workspace from **Code::Blocks IDE**
 * Build and/or debug using the IDE
 * Artifacts: **mingw/bin/Debug**, **mingw/bin/Release**
@@ -41,15 +41,16 @@ Main logic is same as the official except for the necessary platform-specific ch
 
 * Install **gcc-mingw-w64 autoconf automake libtool**
 * Cross-build [libevent](https://libevent.org/)'s static library or download pre-built from https://bintray.com/jefty/generic/libevent-windows/_latestVersion
-* Cross-build [OpenSSL](https://www.openssl.org/)'s static library or download pre-built from https://bintray.com/vszakats/generic/openssl/_latestVersion
+* Cross-build [boringssl](https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable)'s static library or download pre-built from https://bintray.com/jefty/generic/boringssl-windows/_latestVersion
 * *./autogen.sh*
-* *ac_cv_libevent_dir=/path/to/libevent ./configure --host=(x86_64/i686)-w64-mingw32 --disable-extstore --disable-seccomp --disable-sasl  --disable-sasl-pwdb --disable-tls --disable-coverage --disable-docs*
+* *ac_cv_libevent_dir=/path/to/libevent ac_cv_libssl_dir=/path/to/boringssl ./configure --host=(x86_64/i686)-w64-mingw32 --enable-tls --disable-extstore --disable-seccomp --disable-sasl  --disable-sasl-pwdb --disable-coverage --disable-docs*
 * *make*
 * *make test*
 
 ## Building on Linux Host (Reproducible binaries with autotest using Wine)
 
-* Install **gcc-mingw-w64 autoconf automake libtool curl git gpg python3-pip make libssl-dev zip zstd time jq dos2unix wine64 wine32**
+**NOTE:** This takes time since [libevent](https://libevent.org/) and [boringssl](https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable) will be downloaded and built from source.
+* Install **gcc-mingw-w64 autoconf automake cmake libtool curl git gpg python3-pip make libssl-dev zip zstd time jq dos2unix wine64 wine32 perl nasm golang**
 * cd **mingw/build/**
 * *./_build.sh* or **CRUSHER_TEST=ON** *./_build.sh*
 * Setting **CRUSHER_TEST** env automatically runs [mc-crusher](https://github.com/memcached/mc-crusher) test. By default this is limited only to **30 seconds per [mc-crusher](https://github.com/memcached/mc-crusher)/conf/*** with a total duration of around **10 minutes** per build. Set **CRUSHER_DURATION** env to customize.
