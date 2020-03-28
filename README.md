@@ -103,11 +103,15 @@ Main logic is same as the official except for the necessary platform-specific ch
         <td>libevent (for build only)</td>
         <td><a href='https://bintray.com/jefty/generic/libevent-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/libevent-windows/images/download.svg'></a></td>
     </tr>
+    <tr>
+        <td>boringssl (for build only)</td>
+        <td><a href='https://bintray.com/jefty/generic/boringssl-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/boringssl-windows/images/download.svg'></a></td>
+    </tr>
 </table>
 
 ## CI build and test logs
 
-* https://ci.appveyor.com/project/jefty/memcached-windows (Source of [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion) and [github](https://github.com/jefyt/memcached-windows/releases/latest) binaries)
+* https://ci.appveyor.com/project/jefty/memcached-windows (Source of [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion)
 * CI logs and saves the final archives' hashes and can be compared with [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion)'s published hashes. This is one way to confirm that the release came from the CI build.
 * Aside from the hashes, [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion) binaries are also GPG-signed. Verify with [public key](https://bintray.com/user/downloadSubjectPublicKey?username=jefty).
 
@@ -157,6 +161,7 @@ At least **Windows 7**
 * *Reading/writing* from/to __*pipe*__ **MUST** use __*pipe_read/pipe_write*__ instead of __*read/write*__, otherwise runtime/logic error occurs. In non-Windows build, it's just __*read/write*__.
 * *Reading/writing* from/to **socket** **MUST** use __*sock_read/sock_write*__ instead of __*read/write*__, otherwise runtime/logic error occurs. In non-Windows build, it's just __*read/write*__.
 * *Closing* **socket** **MUST** use __*sock_close*__ instead of __*close*__, otherwise runtime/logic error occurs. In non-Windows build, it's just __*close*__.
+* In dealing with **TLS**, WinSSL_* APIs (e.g. **WinSSL_accept**) **MUST** be used. It just directly calls OpenSSL/BoringSSL APIs counterparts with the setting of errno after the call in case of error. In Windows, OpenSSL/BoringSSL does not automatically set the errno (e.g. **EWOULDBLOCK**) since Windows has its own **WSAGetLastError**. **BUT**, memcached is using the errno (e.g. to retry read).
 * Since no __*fork*__ in Windows, **-d/daemon** is implemented as running the same command line in background and **MEMCACHE_DAEMON_ENV** is set so that child/background/daemon process won't repeat the sequence. Main memcached process exits immediately after processing the **-d** option. User can use Windows' service manager as alternative.
 * Most importanly, **socket fds** **CAN'T** be directly used as **conns index** in Windows! Socket fd value can even start beyond **1000**! __*conn_list*__ handles this.
 * If needs more details regarding Windows-specific changes/implementation, **mingw/src/*** files have header comments for reference.
