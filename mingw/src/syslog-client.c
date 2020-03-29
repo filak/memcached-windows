@@ -262,8 +262,8 @@ void syslog( int pri, char* fmt, ... ) {
  */
 void vsyslog( int pri, char* fmt, va_list ap ) {
     static const char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-                           };
+                                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                                 };
     SYSTEMTIME stm;
     int len;
     char *p;

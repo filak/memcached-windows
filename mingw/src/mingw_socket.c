@@ -244,6 +244,26 @@ int sock_close(int fd) {
     return rc;
 }
 
+int sock_dup(int fd) {
+    int rc = -1;
+    BOOL call_ok;
+    HANDLE hsock;
+
+    SOCKET_API_PRINTF("%d {\n", fd);
+
+    call_ok = DuplicateHandle(GetCurrentProcess(), (HANDLE)((intptr_t)fd),  GetCurrentProcess(), &hsock,
+                              0, FALSE, DUPLICATE_SAME_ACCESS);
+    if(call_ok) {
+        rc = (int)((intptr_t)hsock);
+    }
+
+    SOCKET_API_PRINTF("%d } %d\n", fd, rc);
+
+    SOCKET_API_LOG_IF_ERROR(fd, rc);
+
+    return rc;
+}
+
 #ifdef TLS
 int WinSSL_accept(SSL *ssl) {
     int rc;

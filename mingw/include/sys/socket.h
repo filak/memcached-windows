@@ -24,6 +24,7 @@ ssize_t sendmsg(int socket, const struct msghdr *message, int flags);
 ssize_t sock_write(int fd, const void *buf, size_t count);
 ssize_t sock_read(int fd, void *buf, size_t nbyte);
 int sock_close(int fd);
+int sock_dup(int fd);
 #ifdef TLS
 int WinSSL_accept(SSL *ssl);
 int WinSSL_connect(SSL *ssl);

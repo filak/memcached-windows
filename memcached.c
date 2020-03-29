@@ -494,17 +494,18 @@ static bool rbuf_switch_to_malloc(conn *c) {
  * being able to directly index the conns array by FD.
  */
 static void conn_init(void) {
+#ifndef _WIN32
     /* We're unlikely to see an FD much higher than maxconns. */
     int next_fd = dup(1);
     if (next_fd < 0) {
         perror("Failed to duplicate file descriptor\n");
         exit(1);
     }
-
-#ifndef _WIN32
     int headroom = 10;      /* account for extra unexpected open FDs */
 
     max_fds = settings.maxconns + headroom + next_fd;
+
+    close(next_fd);
 #else
     max_fds = settings.maxconns;
 #endif /* #ifndef _WIN32 */
@@ -520,8 +521,6 @@ static void conn_init(void) {
                         "falling back to maxconns\n");
     }
 #endif /* #ifndef DISABLE_RLIMIT_NOFILE */
-
-    close(next_fd);
 
     if ((conns = calloc(max_fds, sizeof(conn *))) == NULL) {
         fprintf(stderr, "Failed to allocate connection structures\n");
@@ -7745,7 +7744,11 @@ static int server_socket(const char *iface,
                 if (c == 0) {
                     per_thread_fd = sfd;
                 } else {
+#ifndef _WIN32
                     per_thread_fd = dup(sfd);
+#else
+                    per_thread_fd = sock_dup(sfd);  /* dup(socket) returns EBADF */
+#endif /* #ifndef _WIN32 */
                     if (per_thread_fd < 0) {
                         perror("Failed to duplicate file descriptor");
                         exit(EXIT_FAILURE);
