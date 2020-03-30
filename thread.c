@@ -640,7 +640,12 @@ void redispatch_conn(conn *c) {
     LIBEVENT_THREAD *thread = c->thread;
 
     buf[0] = 'r';
+#ifndef _WIN32
     memcpy(&buf[1], &c->sfd, sizeof(int));
+#else
+    /* Use conn_idx in Windows as means of lookup similar to timeout handler */
+    memcpy(&buf[1], &c->conn_idx, sizeof(int));
+#endif /* #ifndef _WIN32 */
     if (pipe_write(thread->notify_send_fd, buf, REDISPATCH_MSG_SIZE) != REDISPATCH_MSG_SIZE) {
         perror("Writing redispatch to thread notify pipe");
     }
