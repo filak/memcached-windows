@@ -123,7 +123,9 @@ run_crusher_test() {
 
   # Make steps for determinism
 
-  readonly _ref="$(realpath "../memcached-${_VER}.tar.gz")"
+  readonly _ref='VERSION'
+  echo "${_VER}" > "${_ref}"
+  touch -c -t "${MEMCACHED_DATE_VER_}" "${_ref}"
 
   ../_peclean.py "${_ref}" ${_pkg}/bin/*.exe
 
@@ -158,6 +160,6 @@ run_crusher_test() {
 
   unix2dos -q -k "${_DST}"/*.txt
 
-  ../_pack.sh "${_ref}"
+  ../_pack.sh "${PWD}/${_ref}"
   _NAM="${_NAM}-windows" ../_ul.sh
 )

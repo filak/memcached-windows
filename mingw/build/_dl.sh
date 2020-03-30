@@ -1,7 +1,6 @@
 #!/bin/sh -x
 
 export MEMCACHED_VER_='1.6.3'
-export MEMCACHED_HASH=1c64b3220ee345d28f939f0b96e30a59adf435599a51237b42c887dfc7a31540
 export MC_CRUSHER_VER_='master'
 export LIBEVENT_VER_='2.1.11-stable'
 export LIBEVENT_HASH=a65bac6202ea8c5609fd5c7e480e6d25de467ea1917c08290c521752f147283d
@@ -65,10 +64,13 @@ export BORINGSSL_VER_="$(git log --date=format:'%Y%m%d%H%M' -1 | sed '3q;d' | aw
 cd ..
 
 # Official memcached to be used in timestamping since it has no Changelog that can be used as reference
-rm -f "memcached-${MEMCACHED_VER_}.tar.gz"
-curl -o pack.bin -L --proto-redir =https "https://www.memcached.org/files/memcached-${MEMCACHED_VER_}.tar.gz" || exit 1
-openssl dgst -sha256 pack.bin | grep -q "${MEMCACHED_HASH}" || exit 1
-mv pack.bin "memcached-${MEMCACHED_VER_}.tar.gz"
+UPSTREAM_DIR="memcached-${MEMCACHED_VER_}"
+rm -rf "${UPSTREAM_DIR}"
+git clone --branch ${MEMCACHED_VER_} --depth=1 https://github.com/memcached/memcached.git "${UPSTREAM_DIR}"
+cd "${UPSTREAM_DIR}"
+export MEMCACHED_DATE_VER_="$(git log --date=format:'%Y%m%d%H%M' -1 | sed '3q;d' | awk -F ' ' '{print $2}')"
+cd ..
+echo "memcached upstream version: ${MEMCACHED_VER_} date: ${MEMCACHED_DATE_VER_}"
 
 # Download mc-crusher if enabled
 if [ -n "${CRUSHER_TEST}" ]; then
