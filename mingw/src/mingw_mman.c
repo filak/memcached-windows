@@ -65,13 +65,17 @@ int munmap(void *addr, size_t length) {
     return rc;
 }
 
-/* Win32 MapViewOfFile already acts as MAP_SHARED with instant sync */
 int msync(void *addr, size_t length, int flags) {
-    int rc = 0;
+    int rc = -1;
+    BOOL call_ok;
 
-    (void)addr;
-    (void)length;
     (void)flags;
+
+    call_ok = FlushViewOfFile(addr, length);
+    if(call_ok) {
+        rc = 0;
+    }
 
     return rc;
 }
+

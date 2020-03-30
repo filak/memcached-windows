@@ -289,6 +289,10 @@ void restart_set_kv(void *ctx, const char *key, const char *fmt, ...) {
 static long _find_pagesize(void) {
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
     return sysconf(_SC_PAGESIZE);
+#elif defined(_WIN32)
+	SYSTEM_INFO si;
+	GetSystemInfo(&si);
+    return (long)si.dwPageSize;
 #else
     // A good guess.
     return 4096;
@@ -305,7 +309,11 @@ bool restart_mmap_open(const size_t limit, const char *file, void **mem_base) {
         perror("failed to open file for mmap");
         abort();
     }
+#ifndef _WIN32
     if (ftruncate(mmap_fd, limit) != 0) {
+#else
+    if (ftruncate_win(mmap_fd, limit) != 0) {
+#endif /* #ifndef _WIN32 */
         perror("ftruncate failed");
         abort();
     }

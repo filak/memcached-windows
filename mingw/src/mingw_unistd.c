@@ -104,3 +104,54 @@ int daemonize_cmd(char *argv[], const char *env_name) {
     return rc;
 }
 
+int ftruncate_win(int fd, off_t length) {
+    int rc = -1;
+    HANDLE hfile;
+
+    UNISTD_API_PRINTF("%d {\n", fd);
+
+    hfile = (HANDLE)_get_osfhandle(fd);
+    if(hfile != INVALID_HANDLE_VALUE) {
+        BOOL call_ok;
+        LONGLONG prev_pos;
+        LARGE_INTEGER result;
+        LARGE_INTEGER offset;
+
+        /* Get previous position */
+        offset.QuadPart = 0;
+        call_ok = SetFilePointerEx(hfile, offset, &result, FILE_CURRENT);
+        if(!call_ok) {
+            goto exit;
+        }
+        prev_pos = result.QuadPart;
+
+        /* Set current position to length */
+        offset.QuadPart = (LONGLONG)length;
+        call_ok = SetFilePointerEx(hfile, offset, &result, FILE_BEGIN);
+        if(!call_ok) {
+            goto exit;
+        }
+
+        /* Truncate */
+        call_ok = SetEndOfFile(hfile);
+        if(!call_ok) {
+            goto exit;
+        }
+
+        /* Set current position to previous */
+        offset.QuadPart = prev_pos;
+        call_ok = SetFilePointerEx(hfile, offset, &result, FILE_BEGIN);
+        if(call_ok) {
+            rc = 0;
+        }
+    }
+
+exit:
+
+    UNISTD_API_PRINTF("%d } %d\n", fd, rc);
+
+    UNISTD_API_LOG_IF_ERROR(rc);
+
+    return rc;
+}
+

@@ -14,5 +14,6 @@ ssize_t pipe_write(int fd, const void *buf, size_t count);
 ssize_t pipe_read(int fd, void *buf, size_t nbyte);
 int run_cmd_background(char *argv[], pid_t *pid);
 int daemonize_cmd(char *argv[], const char *env_name);
+int ftruncate_win(int fd, off_t length);
 
 #endif // UNISTD_H_INCLUDED
