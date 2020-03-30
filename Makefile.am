@@ -141,10 +141,15 @@ EXTRA_DIST = doc scripts t memcached.spec memcached_dtrace.d version.m4 README.m
 
 MOSTLYCLEANFILES = *.gcov *.gcno *.gcda *.tcov
 
+if BUILD_MINGW
+TESTDIR=$(srcdir)/mingw/t
+endif
+
 if ENABLE_TLS
 test_tls:
 	$(MAKE) SSL_TEST=1 test
 
+if !BUILD_MINGW
 test_basic_tls:
 	@if test $(SSL_TEST)1 != 1; then \
 	  echo "Running basic tests with TLS"; \
@@ -154,6 +159,17 @@ test_basic_tls:
 	else \
 	  echo "Set SSL_TEST=1 to enable TLS tests"; \
 	fi
+else
+test_basic_tls:
+	echo "Running basic tests with TLS"
+	rm -rf tmp
+	mkdir tmp
+	ln -sf $(TESTDIR)
+	SSL_TEST=1 WINE_TEST=1 wine $(builddir)/testapp$(EXEEXT)
+	SSL_TEST=1 WINE_TEST=1 prove $(TESTDIR)/binary.t $(TESTDIR)/getset.t $(TESTDIR)/ssl*
+	echo "Finished running basic TLS tests"
+endif
+
 endif
 
 if !BUILD_MINGW
@@ -193,7 +209,9 @@ endif
 else
 test:	memcached-debug$(EXEEXT) sizes$(EXEEXT) testapp$(EXEEXT)
 	wine $(builddir)/sizes$(EXEEXT)
-	WINE_TEST=ON wine $(builddir)/testapp$(EXEEXT)
+	ln -sf $(TESTDIR)
+	WINE_TEST=1 wine $(builddir)/testapp$(EXEEXT)
+	WINE_TEST=1 $(TESTDIR)/run_test_harness.sh
 endif
 
 docs:

@@ -4,22 +4,58 @@
 
 **memcached-windows** is a native Windows port of memcached without using a compatibility layer like Cygwin or Windows Subsystem for Linux. It is instead using [Mingw-w64](http://mingw-w64.org/) to produce native Win32 and Win64 binaries. Build script is also available to build reproducible binaries similar to [cURL](https://curl.haxx.se/windows/) (see [curl-for-win](https://github.com/curl/curl-for-win/)). This means that rebuild can always produce same binaries using same compiler package version. This script is used in CI build.
 
-Since the ideal target of this project is to be merged upstream, the codes are carefully written not to cause major merge conflicts with the base code. Header inclusions are not modified but instead redirected to local headers with the same name (e.g. **signal.h**). The local header files then include the real files if necessary using **#include_next**. This means that the codes to be built for non-Windows target are virtually same as the original because all new/modified codes are protected by macros (e.g. **DISABLE_UNIX_SOCKET**).
+**memcached-windows** will be regularly merged, built, and tested with upstream/official [memcached](https://memcached.org/)'s latest releases since the main logic is just same except for the necessary platform-specific changes mostly implemented in separate files (see https://github.com/jefyt/memcached-windows#implementation-notes-for-devs).
 
-Main logic is same as the official except for the necessary platform-specific changes mostly implemented in separate files (see **mingw** folder).
+## Bintray binary package downloads (win32 and win64)
+
+<table>
+    <tr>
+        <th>Package</th>
+        <th>Link</th>
+    </tr>
+    <tr>
+        <td>memcached</td>
+        <td><a href='https://bintray.com/jefty/generic/memcached-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/memcached-windows/images/download.svg'></a>
+        </td>
+    </tr>
+    <tr>
+        <td>libevent (for build only)</td>
+        <td><a href='https://bintray.com/jefty/generic/libevent-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/libevent-windows/images/download.svg'></a></td>
+    </tr>
+    <tr>
+        <td>boringssl (for build only)</td>
+        <td><a href='https://bintray.com/jefty/generic/boringssl-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/boringssl-windows/images/download.svg'></a></td>
+    </tr>
+</table>
+
+## CI build and test logs
+
+* https://ci.appveyor.com/project/jefty/memcached-windows (Source/Uploader of [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion) binaries)
+* CI outputs and saves the final archives' hashes and can be compared with [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion)'s published hashes. This is one way to confirm that the release came from the CI build.
+* Aside from the hashes, [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion) binaries are also GPG-signed. Verify with [public key](https://bintray.com/user/downloadSubjectPublicKey?username=jefty).
+
+## Environment
+
+At least **Windows 7**
+
+## Running
+
+* Just execute __*memcached.exe*__ (Options are same except the unsupported)
+* Just execute __*memcached.exe --help*__ for more info
 
 ## Dependencies
 
-* [libevent](https://libevent.org/) (same as the base code)
+* [libevent](https://libevent.org/) (Same as upstream. Statically linked.)
+* [BoringSSL](https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable) (Upstream is [OpenSSL](https://www.openssl.org/). Statically linking Google's [BoringSSL](https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable) generates smaller (**~34%**) executable.)
 
 ## Unsupported/Disabled options/features (may support in the future)
 
 * **sasl** (Upstream support since v1.4.3)
 * **extstore** (Upstream support since v1.5.4)
 * **-u/user** (Can use Windows __*runas*__ command or Windows **explorer**'s __*Run as different user*__ context menu)
-* **-s/unix-socket** (Windows does not currently support Unix domain socket) 
+* **-s/unix-socket** ([Mingw-w64](http://mingw-w64.org/) does not currently support **AF_UNIX** even though it is already supported in Windows since **Windows 10 build 1803**. Supporting this natively in Windows 10 **MUST** also need native (not **Cygwin**-emulated) **AF_UNIX**-aware memcached clients. Just use localhost TCP instead!
 * **-k/lock-memory** (Windows does not currently support locking of all paged memory)
-* **-r/coredumps** (MinGW currently doesn't support but gdb debugging without coredump is possible)
+* **-r/coredumps** (([Mingw-w64](http://mingw-w64.org/) currently doesn't support but gdb debugging without coredump is possible)
 * **seccomp** (Linux-specific)
 
 ## Building on Windows Host (IDE-based, recommended for easier debugging)
@@ -49,11 +85,14 @@ Main logic is same as the official except for the necessary platform-specific ch
 
 ## Building on Linux Host (Reproducible binaries with autotest using Wine)
 
-**NOTE:** This takes time since [libevent](https://libevent.org/) and [boringssl](https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable) will be downloaded and built from source.
+**NOTE:** This takes time since [libevent](https://libevent.org/) and [boringssl](https://boringssl.googlesource.com/boringssl/+/refs/heads/chromium-stable) will be downloaded and built from source. **memcached**'s __*make test*__ and __*make test_tls*__ will also be executed automatically.
 * Install **gcc-mingw-w64 autoconf automake cmake libtool curl git gpg python3-pip make libssl-dev zip zstd time jq dos2unix wine64 wine32 perl nasm golang**
 * cd **mingw/build/**
-* *./_build.sh* or **CRUSHER_TEST=ON** *./_build.sh*
-* Setting **CRUSHER_TEST** env automatically runs [mc-crusher](https://github.com/memcached/mc-crusher) test. By default this is limited only to **30 seconds per [mc-crusher](https://github.com/memcached/mc-crusher)/conf/*** with a total duration of around **10 minutes** per build. Set **CRUSHER_DURATION** env to customize.
+* *./_build.sh*
+
+Environment variables to customize *./_build.sh*
+* Set **FULL_SSL_TEST=1** env to automatically execute __*make test_tls*__. Only __*make test_basic_tls*__ is executed by default.
+* Set **CRUSHER_TEST=1** env to automatically execute [mc-crusher](https://github.com/memcached/mc-crusher) test. By default this is limited only to **30 seconds per [mc-crusher](https://github.com/memcached/mc-crusher)/conf/*** with a total duration of around **10 minutes** per build. Set **CRUSHER_DURATION** env to customize.
 
 **Artifacts**:
 <table>
@@ -87,50 +126,13 @@ Main logic is same as the official except for the necessary platform-specific ch
     </tr>
 </table>
 
-## Bintray binary package downloads (win32 and win64)
-
-<table>
-    <tr>
-        <th>Package</th>
-        <th>Link</th>
-    </tr>
-    <tr>
-        <td>memcached</td>
-        <td><a href='https://bintray.com/jefty/generic/memcached-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/memcached-windows/images/download.svg'></a>
-        </td>
-    </tr>
-    <tr>
-        <td>libevent (for build only)</td>
-        <td><a href='https://bintray.com/jefty/generic/libevent-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/libevent-windows/images/download.svg'></a></td>
-    </tr>
-    <tr>
-        <td>boringssl (for build only)</td>
-        <td><a href='https://bintray.com/jefty/generic/boringssl-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/boringssl-windows/images/download.svg'></a></td>
-    </tr>
-</table>
-
-## CI build and test logs
-
-* https://ci.appveyor.com/project/jefty/memcached-windows (Source of [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion)
-* CI logs and saves the final archives' hashes and can be compared with [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion)'s published hashes. This is one way to confirm that the release came from the CI build.
-* Aside from the hashes, [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion) binaries are also GPG-signed. Verify with [public key](https://bintray.com/user/downloadSubjectPublicKey?username=jefty).
-
-## Environment
-
-At least **Windows 7**
-
-## Running
-
-* Just execute __*memcached.exe*__ (Options are same except the unsupported)
-* Just execute __*memcached.exe --help*__ for more info
-
 ## Testing
 
-* memcached's **testapp** is also ported to easily verify that the port is working as expected
-* __*make test*__ will only execute __*testapp.exe*__ and __*sizes.exe*__ but not the Perl-based test suite (at least currently)
+* memcached's **testapp** and the Perl-based test harness are also ported to easily verify that the port is working as expected
+* __*make test*__ will execute __*testapp.exe*__, __*sizes.exe*__, and the Perl-based test harness (same as upstream).
 * [mc-crusher](https://github.com/memcached/mc-crusher) test is also performed.
 * Maximum connection limit concurrency testing is also performed using [libMemcached](https://libmemcached.org/libMemcached.html)'s **memcslap**.
-* **NOTE:** Since Perl-based test suite is not executed, test is lacking on some areas. **Use at your own risk!**
+* See https://github.com/jefyt/memcached-windows/issues for open issues.
 
 ## Third-party OSS
 <table>
@@ -166,6 +168,7 @@ history.
 
 ## Implementation Notes for Devs
 
+* Since the ideal target of this project is to be merged upstream, the codes are carefully written not to cause major merge conflicts with the base code. Header inclusions are not modified but instead redirected to local headers with the same name (e.g. **signal.h**). The local header files then include the real files if necessary using **#include_next**. This means that the codes to be built for non-Windows target are virtually same as the original because all new/modified codes are protected with macros (e.g. **DISABLE_UNIX_SOCKET**).
 * **-Werror** is intentionally disabled for Windows target but this doesn't mean warnings were not or won't be checked! In Windows host build, a lot of warnings are reported for memcached base code. Some of warnings are **-Wimplicit-fallthrough** and **-Wsign-compare**. These warnings can be ignored and fixing will just cause a lot of merge conflicts with the base code. In Linux host build, a lot of warnings are reported for the new/modified codes mostly for the heavy use of **#include_next (#include_next is a GCC extension)**. These warnings can also be ignored unless other method will be used in porting without much code changes with base code's header inclusions (e.g. #ifdefs, #ifndefs, moving includes).
 * __*pipe*__ is implementated as libevent's __*evutil_socketpair*__ because Windows' anonymous pipes won't work with libevent which is used in memcached.
 * *Reading/writing* from/to __*pipe*__ **MUST** use __*pipe_read/pipe_write*__ instead of __*read/write*__, otherwise runtime/logic error occurs. In non-Windows build, it's just __*read/write*__.

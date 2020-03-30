@@ -137,10 +137,10 @@ run_crusher_test() {
   "${_CCPREFIX}objdump" -x ${_pkg}/bin/*.exe | grep -E -i "(file format|dll name)"
 
   make test
-
-  # make test_tls needs the t dir, just symlink here
-  ln -s "${MEMCACHED_SRCDIR}/t"
-  make test_tls
+  make test_basic_tls
+  if [ -n "${FULL_SSL_TEST}" ]; then
+    make test_tls
+  fi
 
   if [ -n "${CRUSHER_TEST}" ]; then
     run_crusher_test > "${_pkg}/tests/mc-crusher.log" 2>&1
