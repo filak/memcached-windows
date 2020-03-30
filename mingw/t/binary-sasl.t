@@ -175,7 +175,7 @@ $empty->('x');
 $empty->('x');
 
 # Build the auth DB for testing.
-my $sasldb = '/tmp/test-memcached.sasldb';
+my $sasldb = 'tmp/test-memcached.sasldb';
 unlink $sasldb;
 
 my $saslpasswd_path;

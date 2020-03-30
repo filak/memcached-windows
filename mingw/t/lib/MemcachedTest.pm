@@ -182,26 +182,33 @@ sub free_port {
     return $port;
 }
 
+sub print_help {
+    my $exe = get_memcached_exe();
+    my $wine_exe = get_wine_exe();
+    my $output = `$wine_exe $exe -h`;
+    return $output;
+}
+
 sub supports_udp {
-    my $output = `$builddir/memcached-debug -h`;
+    my $output = print_help();
     return 0 if $output =~ /^memcached 1\.1\./;
     return 1;
 }
 
 sub supports_sasl {
-    my $output = `$builddir/memcached-debug -h`;
+    my $output = print_help();
     return 1 if $output =~ /sasl/i;
     return 0;
 }
 
 sub supports_extstore {
-    my $output = `$builddir/memcached-debug -h`;
+    my $output = print_help();
     return 1 if $output =~ /ext_path/i;
     return 0;
 }
 
 sub supports_tls {
-    my $output = `$builddir/memcached-debug -h`;
+    my $output = print_help();
     return 1 if $output =~ /enable-ssl/i;
     return 0;
 }
@@ -218,21 +225,41 @@ sub enabled_tls_testing {
 }
 
 sub supports_drop_priv {
-    my $output = `$builddir/memcached-debug -h`;
+    my $output = print_help();
     return 1 if $output =~ /no_drop_privileges/i;
     return 0;
 }
 
 sub get_memcached_exe {
-    my $exe = "$builddir/memcached-debug";
+    my $exe = "$builddir/memcached.exe";
+    if ($ENV{WINE_TEST}) {
+        $exe = "$builddir/memcached-debug.exe";
+    }
     croak("memcached binary doesn't exist.  Haven't run 'make' ?\n") unless -e $exe;
-    croak("memcached binary not executable\n") unless -x _;
+    # croak("memcached binary not executable\n") unless -x _;
+    return $exe;
+}
+
+sub get_timeout_exe {
+    my $exe = '';
+    if ($ENV{WINE_TEST}) {
+        $exe = "timeout";
+    }
+    return $exe;
+}
+
+sub get_wine_exe {
+    my $exe = '';
+    if ($ENV{WINE_TEST}) {
+        $exe = "wine";
+    }
     return $exe;
 }
 
 sub run_help {
     my $exe = get_memcached_exe();
-    return system("$exe -h");
+    my $wine_exe = get_wine_exe();
+    return system("$wine_exe $exe -h");
 }
 
 sub new_memcached {
@@ -240,6 +267,10 @@ sub new_memcached {
     my $port = $passed_port;
     my $host = '127.0.0.1';
     my $ssl_enabled  = enabled_tls_testing();
+
+    if ($port eq '') {
+        $port = 11211;
+    }
 
     if ($ENV{T_MEMD_USE_DAEMON}) {
         my ($host, $port) = ($ENV{T_MEMD_USE_DAEMON} =~ m/^([^:]+):(\d+)$/);
@@ -262,10 +293,10 @@ sub new_memcached {
         croak("Failed to connect to specified memcached server.") unless $conn;
     }
 
-    if ($< == 0) {
-        $args .= " -u root";
-    }
-    $args .= " -o relaxed_privileges";
+    # if ($< == 0) {
+        # $args .= " -u root";
+    # }
+    # $args .= " -o relaxed_privileges";
 
     my $udpport;
     if ($args =~ /-l (\S+)/ || ($ssl_enabled && ($args !~ /-s (\S+)/))) {
@@ -280,11 +311,12 @@ sub new_memcached {
         if ($ssl_enabled) {
             $args .= " -Z -o ssl_chain_cert=$server_crt -o ssl_key=$server_key";
         }
-    } elsif ($args !~ /-s (\S+)/) {
-        my $num = @unixsockets;
-        my $file = "/tmp/memcachetest.$$.$num";
-        $args .= " -s $file";
-        push(@unixsockets, $file);
+    #### Disable the unsupported unix domain sockets ####
+    # } elsif ($args !~ /-s (\S+)/) {
+        # my $num = @unixsockets;
+        # my $file = "./memcachetest.$$.$num";
+        # $args .= " -s $file";
+        # push(@unixsockets, $file);
     }
 
     my $childpid = fork();
@@ -292,8 +324,15 @@ sub new_memcached {
     my $exe = get_memcached_exe();
 
     unless ($childpid) {
-        #print STDERR "RUN: $exe $args\n";
-        exec "$builddir/timedrun 600 $exe $args";
+        my $wine_exe = get_wine_exe();
+        my $timeout_exe = get_timeout_exe();
+        my $timeout_args = "600";
+        if ($timeout_exe eq '') {
+            $timeout_args = '';
+        }
+
+        print STDERR "RUN: $exe $args\n";
+        exec "$timeout_exe $timeout_args $wine_exe $exe $args";
         exit; # never gets here.
     }
 
@@ -339,9 +378,10 @@ sub new_memcached {
 }
 
 END {
-    for (@unixsockets) {
-        unlink $_;
-    }
+    #### Disable the unsupported unix domain sockets ####
+    # for (@unixsockets) {
+        # unlink $_;
+    # }
 }
 
 ############################################################################

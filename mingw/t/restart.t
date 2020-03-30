@@ -8,9 +8,9 @@ use lib "$Bin/lib";
 use MemcachedTest;
 
 # NOTE: Do not use this feature on top of a filesystem, please use a ram disk!
-# These tests use /tmp/ as some systems do not have or have a weirdly small
+# These tests use tmp/ as some systems do not have or have a weirdly small
 # /dev/shm.
-my $mem_path = "/tmp/mc_restart.$$";
+my $mem_path = "tmp/mc_restart.$$";
 
 # read a invalid metadata file
 {
@@ -99,7 +99,8 @@ diag "Data that should expire while stopped.";
     is($res, "OK\r\n", "watcher enabled");
 }
 
-$server->graceful_stop();
+#### Windows does not support SIGUSR1 ####
+$server->stop();
 diag "killed, waiting";
 # TODO: add way to wait for server to fully exit..
 sleep 10;

@@ -11,16 +11,16 @@ use Socket qw(sockaddr_in INADDR_ANY PF_INET SOCK_STREAM);
 use Cwd;
 my $builddir = getcwd;
 
-$ENV{'MEMCACHED_PORT_FILENAME'} = "/tmp/ports.$$";
+$ENV{'MEMCACHED_PORT_FILENAME'} = "tmp/ports.$$";
 
 sub read_ports {
     my %rv = ();
-    open(my $f, "/tmp/ports.$$") || die("Can't open ports file.");
+    open(my $f, "tmp/ports.$$") || die("Can't open ports file.");
     while(<$f>) {
         my ($type, $port) = split(/:\s+/);
         $rv{$type} = $port + 0;
     }
-    unlink "/tmp/ports.$$";
+    unlink "tmp/ports.$$";
     return %rv;
 }
 
@@ -52,26 +52,32 @@ sub skip_if_default_addr_in_use(&) {
 sub run_server {
     my ($args) = @_;
 
-    my $exe = "$builddir/memcached-debug";
-    croak("memcached binary doesn't exist.  Haven't run 'make' ?\n") unless -e $exe;
+    my $exe = MemcachedTest::get_memcached_exe();
 
     my $childpid = fork();
 
-    my $root = '';
-    $root = "-u root" if ($< == 0);
+    # my $root = '';
+    # $root = "-u root" if ($< == 0);
 
     # test build requires more privileges
-    $args .= " -o relaxed_privileges";
-
-    my $cmd = "$builddir/timedrun 10 $exe $root $args";
+    # $args .= " -o relaxed_privileges";
 
     unless($childpid) {
-        exec $cmd;
+        my $wine_exe = MemcachedTest::get_wine_exe();
+        my $timeout_exe = MemcachedTest::get_timeout_exe();
+        my $timeout_args = "10";
+        if ($timeout_exe eq '') {
+            $timeout_args = '';
+        }
+        my $cmd = "$timeout_exe $timeout_args $wine_exe $exe $args";
+
+        print STDERR "RUN: $cmd\n";
+        exec "$cmd";
         exit; # NOTREACHED
     }
 
     for (1..20) {
-        if (-f "/tmp/ports.$$") {
+        if (-f "tmp/ports.$$") {
             return Memcached::Handle->new(pid  => $childpid);
         }
         select undef, undef, undef, 0.10;

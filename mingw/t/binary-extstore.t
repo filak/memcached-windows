@@ -15,7 +15,7 @@ if (!supports_extstore()) {
     exit 0;
 }
 
-$ext_path = "/tmp/extstore.$$";
+$ext_path = "tmp/extstore.$$";
 
 my $server = new_memcached("-m 64 -U 0 -o ext_page_size=8,ext_wbuf_size=2,ext_threads=1,ext_io_depth=2,ext_item_size=512,ext_item_age=2,ext_recache_rate=10000,ext_max_frag=0.9,ext_path=$ext_path:64m,no_lru_crawler,slab_automove=0");
 ok($server, "started the server");

@@ -33,6 +33,7 @@ is($sock->get_session_reused(), 0, "client-side session cache is unused");
 
 ### Enabled SSL session cache
 
+$server->DESTROY();
 $server = new_memcached("-o ssl_session_cache");
 # Support for session caching in IO::Socket::SSL for TLS v1.3 is incomplete.
 # Here, we will deliberately force TLS v1.2 to test session caching.

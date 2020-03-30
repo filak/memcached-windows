@@ -75,7 +75,7 @@ mem_get_is($sock, "sitem_0", undef);
 sleep 15;
 
 # Now we increment the item which should be on the tail.
-# THIS asserts the memcached-debug binary.
+# THIS asserts the memcached-debug.exe binary.
 print $sock "incr sitem_1 1\r\n";
 is(scalar <$sock>, "2\r\n", "incremented to two");
 

@@ -6,7 +6,7 @@ use FindBin qw($Bin);
 use lib "$Bin/lib";
 use MemcachedTest;
 
-my $filename = "/tmp/memcachetest$$";
+my $filename = "tmp/memcachetest$$";
 
 my $server = new_memcached("-s $filename");
 my $sock = $server->sock;

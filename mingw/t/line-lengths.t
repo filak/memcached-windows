@@ -4,7 +4,7 @@ use FindBin qw($Bin);
 our @files;
 
 BEGIN {
-    chdir "$Bin/.." or die;
+    chdir "$Bin/../../" or die;
     @files = ( "doc/protocol.txt" );
 }
 
