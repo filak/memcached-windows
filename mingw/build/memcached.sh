@@ -139,7 +139,9 @@ run_crusher_test() {
   "${_CCPREFIX}objdump" -x ${_pkg}/bin/*.exe | grep -E -i "(file format|dll name)"
 
   make test
-  make test_basic_tls
+  if [ -n "${SSL_TEST}" ]; then
+    make test_basic_tls
+  fi
   if [ -n "${FULL_SSL_TEST}" ]; then
     make test_tls
   fi
