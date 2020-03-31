@@ -34,7 +34,7 @@ prove "${T_DIR}/extstore-buckets.t"
 prove "${T_DIR}/extstore-jbod.t"
 prove "${T_DIR}/extstore.t"
 prove "${T_DIR}/flags.t"
-# prove "${T_DIR}/flush-all.t"              # FAILED
+prove "${T_DIR}/flush-all.t"
 prove "${T_DIR}/getandtouch.t"
 prove "${T_DIR}/getset.t"
 prove "${T_DIR}/idle-timeout.t"
@@ -61,7 +61,7 @@ prove "${T_DIR}/issue_70.t"
 prove "${T_DIR}/item_size_max.t"
 prove "${T_DIR}/line-lengths.t"
 prove "${T_DIR}/lru-crawler.t"
-# prove "${T_DIR}/lru-maintainer.t"         # FAILED
+prove "${T_DIR}/lru-maintainer.t"
 prove "${T_DIR}/lru.t"
 prove "${T_DIR}/malicious-commands.t"
 prove "${T_DIR}/maxconns.t"
@@ -87,6 +87,6 @@ prove "${T_DIR}/stats.t"
 prove "${T_DIR}/touch.t"
 prove "${T_DIR}/udp.t"
 # prove "${T_DIR}/unixsocket.t"             # UNSUPPORTED
-# prove "${T_DIR}/watcher_connid.t"         # FAILED
-# prove "${T_DIR}/watcher.t"                # FAILED
+prove "${T_DIR}/watcher_connid.t"
+prove "${T_DIR}/watcher.t"
 # prove "${T_DIR}/whitespace.t"             # CODE FORMATTING
