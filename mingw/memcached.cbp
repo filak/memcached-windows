@@ -51,6 +51,7 @@
 			<Add directory="$(SSLDIR)/include" />
 		</Compiler>
 		<Linker>
+			<Add option="-static-libgcc" />
 			<Add option="-Wl,-Bstatic -levent -Wl,-Bstatic -lssl -Wl,-Bstatic -lcrypto -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
 			<Add directory="$(LIBEVENTDIR)/lib" />
 			<Add directory="$(SSLDIR)/lib" />
