@@ -5875,7 +5875,13 @@ static void process_quit_command(conn *c) {
 static void process_shutdown_command(conn *c) {
     if (settings.shutdown_command) {
         conn_set_state(c, conn_closing);
+#ifndef _WIN32
         raise(SIGINT);
+#else
+        /* Graceful exit for Windows */
+        raise(SIGTERM);
+#endif /* #ifndef _WIN32 */
+
     } else {
         out_string(c, "ERROR: shutdown not enabled");
     }
@@ -8336,14 +8342,14 @@ static void sig_handler(const int sig) {
     exit(EXIT_SUCCESS);
 }
 
-#ifndef WINDOWS_ONLY_SIGNALS
-static void sighup_handler(const int sig) {
-    settings.sig_hup = true;
-}
-
 static void sig_usrhandler(const int sig) {
     printf("Graceful shutdown signal handled: %s(%d).\n", strsignal(sig), sig);
     stop_main_loop = true;
+}
+
+#ifndef WINDOWS_ONLY_SIGNALS
+static void sighup_handler(const int sig) {
+    settings.sig_hup = true;
 }
 
 #ifndef HAVE_SIGIGNORE
@@ -8982,6 +8988,20 @@ int main (int argc, char **argv) {
     signal(SIGTERM, sig_handler);
     signal(SIGHUP, sighup_handler);
     signal(SIGUSR1, sig_usrhandler);
+#else
+    /* Windows does not support/generate SIGUSR1 or some standard signals.
+     * Just use '-A' option and shutdown command to just internally
+     * raise SIGTERM via @ref process_shutdown_command and handle it as
+     * graceful exit. This also means that behavior is different with upstream
+     * for shutdown. This is better than adding Windows message handling IPC (e.g. WM_QUIT)
+     * just to handle graceful exit. The user can just use any Windows
+     * tools/commands to kill the process immediately if desired.
+     * Summary:
+     * SIGINT (e.g. Ctrl+C)   : Signalled but exit immediately (same with upstream)
+     * SIGTERM (via shutdown) : Signalled and exit gracefully (not same with  upstream)
+     * Others (e.g. taskkill) : Not signalled and exit immediately (same with upstream)
+     */
+    signal(SIGTERM, sig_usrhandler);
 #endif /* #ifndef WINDOWS_ONLY_SIGNALS */
 
     /* init settings */

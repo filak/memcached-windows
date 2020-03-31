@@ -1014,20 +1014,7 @@ static enum test_return shutdown_memcached_server(void) {
 
     send_ascii_command("shutdown\r\n");
     /* verify that the server closed the connection */
-#ifndef _WIN32
     assert(con->read(con, buffer, sizeof(buffer)) == 0);
-#else
-    /* Windows returns -1 with WSAECONNRESET errno if server is already shutdown
-     * BUT WINE (which will be used in CI) returns 0 same as *nix expectation.
-     * Adjust the test accordingly.
-     */
-    if(getenv(WINE_TEST_ENV)) {
-        assert(con->read(con, buffer, sizeof(buffer)) == 0);
-    }
-    else {
-        assert(con->read(con, buffer, sizeof(buffer)) == -1);
-    }
-#endif /* #ifndef _WIN32 */
 
     close_conn();
 
