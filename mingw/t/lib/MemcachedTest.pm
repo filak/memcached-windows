@@ -268,10 +268,6 @@ sub new_memcached {
     my $host = '127.0.0.1';
     my $ssl_enabled  = enabled_tls_testing();
 
-    if ($port eq '') {
-        $port = 11211;
-    }
-
     if ($ENV{T_MEMD_USE_DAEMON}) {
         my ($host, $port) = ($ENV{T_MEMD_USE_DAEMON} =~ m/^([^:]+):(\d+)$/);
         my $conn;
@@ -299,7 +295,8 @@ sub new_memcached {
     # $args .= " -o relaxed_privileges";
 
     my $udpport;
-    if ($args =~ /-l (\S+)/ || ($ssl_enabled && ($args !~ /-s (\S+)/))) {
+    #### Unix domain socket is unsupported so always generate free port ####
+    # if ($args =~ /-l (\S+)/ || ($ssl_enabled && ($args !~ /-s (\S+)/))) {
         if (!$port) {
             $port = free_port();
         }
@@ -317,7 +314,7 @@ sub new_memcached {
         # my $file = "./memcachetest.$$.$num";
         # $args .= " -s $file";
         # push(@unixsockets, $file);
-    }
+    # }
 
     my $childpid = fork();
 
