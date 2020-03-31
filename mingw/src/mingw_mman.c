@@ -51,15 +51,15 @@ void *mmap(void *addr, size_t length, int prot, int flags,
 }
 
 int munmap(void *addr, size_t length) {
-    int rc = 0;
-    int win_rc;
+    int rc = -1;
+    BOOL call_ok;
 
     (void)length;
 
     /* If the function fails, the return value is zero */
-    win_rc = !UnmapViewOfFile(addr);
-    if(0 == win_rc) {
-        rc = -1;
+    call_ok = UnmapViewOfFile(addr);
+    if(call_ok) {
+        rc = 0;
     }
 
     return rc;

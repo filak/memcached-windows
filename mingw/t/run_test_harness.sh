@@ -71,7 +71,7 @@ prove "${T_DIR}/multiversioning.t"
 prove "${T_DIR}/noreply.t"
 prove "${T_DIR}/quit.t"
 prove "${T_DIR}/refhang.t"
-# prove "${T_DIR}/restart.t"                # FAILED
+prove "${T_DIR}/restart.t"
 prove "${T_DIR}/slabhang.t"
 prove "${T_DIR}/slabs-reassign2.t"
 prove "${T_DIR}/slabs-reassign-chunked.t"

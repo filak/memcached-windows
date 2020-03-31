@@ -21,7 +21,7 @@ my $mem_path = "tmp/mc_restart.$$";
     ok($@, "Died with an empty metadata file");
 }
 
-my $server = new_memcached("-m 128 -e $mem_path -I 2m");
+my $server = new_memcached("-A -m 128 -e $mem_path -I 2m");
 my $sock = $server->sock;
 
 diag "Set some values, various sizes.";
@@ -100,7 +100,7 @@ diag "Data that should expire while stopped.";
 }
 
 #### Windows does not support SIGUSR1 ####
-$server->stop();
+print $sock "shutdown\r\n";
 diag "killed, waiting";
 # TODO: add way to wait for server to fully exit..
 sleep 10;
