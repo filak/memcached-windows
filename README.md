@@ -4,6 +4,8 @@
 
 **memcached-windows** is a native Windows port of memcached without using a compatibility layer like Cygwin or Windows Subsystem for Linux. It is instead using [Mingw-w64](http://mingw-w64.org/) to produce native Win32 and Win64 binaries. Build script is also available to build reproducible binaries similar to [cURL](https://curl.haxx.se/windows/) (see [curl-for-win](https://github.com/curl/curl-for-win/)). This means that rebuild can always produce same binaries using same compiler package version. This script is used in CI build.
 
+**memcached-windows** is verified using the same test suite as the official [memcached](https://memcached.org/). All tests **PASSED**!
+
 **memcached-windows** will be regularly merged, built, and tested with upstream/official [memcached](https://memcached.org/)'s latest releases since the main logic is just same except for the necessary platform-specific changes mostly implemented in separate files (see https://github.com/jefyt/memcached-windows#implementation-notes-for-devs).
 
 ## Bintray binary package downloads (win32 and win64)
@@ -55,7 +57,7 @@ At least **Windows 7**
 * **-u/user** (Can use Windows __*runas*__ command or Windows **explorer**'s __*Run as different user*__ context menu)
 * **-s/unix-socket** ([Mingw-w64](http://mingw-w64.org/) does not currently support **AF_UNIX** even though it is already supported in Windows since **Windows 10 build 1803**. Supporting this natively in Windows 10 **MUST** also need native (not **Cygwin**-emulated) **AF_UNIX**-aware memcached clients. Just use localhost TCP instead!
 * **-k/lock-memory** (Windows does not currently support locking of all paged memory)
-* **-r/coredumps** (([Mingw-w64](http://mingw-w64.org/) currently doesn't support but gdb debugging without coredump is possible)
+* **-r/coredumps** ([Mingw-w64](http://mingw-w64.org/) currently doesn't support but gdb debugging without coredump is possible)
 * **seccomp** (Linux-specific)
 
 ## Building on Windows Host (IDE-based, recommended for easier debugging)
