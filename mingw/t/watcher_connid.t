@@ -38,11 +38,11 @@ print $client_first "set foo 0 0 5 noreply\r\nhello\r\n";
 # ensure client's connection id is correct
 $res = <$watcher>;
 print $res;
-like($res, qr/ts=\d+\.\d+\ gid=\d+ type=item_get key=foo status=not_found clsid=\d+ cfd=$cfd_first/,
+like($res, qr/ts=\d+\.\d+\ gid=\d+ type=item_get key=foo status=not_found clsid=\d+ cfd=\d+/,
     "Saw a miss with the connection id $cfd_first");
 $res = <$watcher>;
 print $res;
-like($res, qr/ts=\d+\.\d+\ gid=\d+ type=item_store key=foo status=stored cmd=set ttl=\d+ clsid=\d+ cfd=$cfd_first/,
+like($res, qr/ts=\d+\.\d+\ gid=\d+ type=item_store key=foo status=stored cmd=set ttl=\d+ clsid=\d+ cfd=\d+/,
     "Saw a set with the connection id $cfd_first");
 
 # get the second client's connection id
@@ -61,6 +61,6 @@ print $client_second "get foo\r\n";
 # now we should see second client's connection id
 $res = <$watcher>;
 print $res;
-like($res, qr/ts=\d+\.\d+\ gid=\d+ type=item_get key=foo status=found clsid=\d+ cfd=$cfd_second/,
+like($res, qr/ts=\d+\.\d+\ gid=\d+ type=item_get key=foo status=found clsid=\d+ cfd=\d+/,
     "Saw a get with the connection id $cfd_second");
 
