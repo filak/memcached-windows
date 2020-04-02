@@ -440,7 +440,7 @@ static void *storage_compact_thread(void *arg) {
     uint32_t page_id = 0;
     bool drop_unread = false;
     char *readback_buf = NULL;
-    struct storage_compact_wrap wrap;
+    struct storage_compact_wrap wrap = {0};
 
     logger *l = logger_create();
     if (l == NULL) {

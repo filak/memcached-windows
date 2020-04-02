@@ -92,13 +92,14 @@ run_crusher_test() {
 
   options=''
   options="${options} --host=${_TRIPLET}"
-  options="${options} --disable-extstore"
+  options="${options} --enable-extstore"
   options="${options} --enable-tls"
   options="${options} --disable-seccomp"
   options="${options} --disable-sasl"
   options="${options} --disable-sasl-pwdb"
   options="${options} --disable-coverage"
   options="${options} --disable-docs"
+  export ac_cv_c_alignment=none
   export ac_cv_libevent_dir="$(realpath "$(dirname $0)/..")/libevent/pkg/usr/local"
   export ac_cv_libssl_dir="$(realpath "$(dirname $0)/..")/boringssl/pkg/usr/local"
 

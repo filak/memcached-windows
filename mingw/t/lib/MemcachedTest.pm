@@ -328,7 +328,7 @@ sub new_memcached {
             $timeout_args = '';
         }
 
-        print STDERR "RUN: $exe $args\n";
+        # print STDERR "RUN: $exe $args\n";
         exec "$timeout_exe $timeout_args $wine_exe $exe $args";
         exit; # never gets here.
     }

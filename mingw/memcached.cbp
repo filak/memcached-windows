@@ -29,8 +29,8 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-Wextra" />
 			<Add option="-Wall" />
+			<Add option="-Wmissing-prototypes -Wmissing-declarations -Wredundant-decls" />
 			<Add option="-DHAVE_CONFIG_H" />
 			<Add option="-D_POSIX" />
 			<Add option="-D_GNU_SOURCE" />
@@ -38,6 +38,7 @@
 			<Add option="-D_WIN32_WINNT=0x0601" />
 			<Add option="-DWIN32_LEAN_AND_MEAN" />
 			<Add option="-DTLS" />
+			<Add option="-DEXTSTORE" />
 			<Add option="-DDISABLE_UNIX_SOCKET" />
 			<Add option="-DDISABLE_RUNAS_USER" />
 			<Add option="-DWINDOWS_ONLY_SIGNALS" />
@@ -76,6 +77,14 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../crawler.h" />
+		<Unit filename="../crc32c.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../crc32c.h" />
+		<Unit filename="../extstore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../extstore.h" />
 		<Unit filename="../hash.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -112,6 +121,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../slab_automove.h" />
+		<Unit filename="../slab_automove_extstore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../slab_automove_extstore.h" />
 		<Unit filename="../slabs.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -120,6 +133,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../stats_prefix.h" />
+		<Unit filename="../storage.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../storage.h" />
 		<Unit filename="../thread.c">
 			<Option compilerVar="CC" />
 		</Unit>

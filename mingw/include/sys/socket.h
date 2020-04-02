@@ -1,6 +1,10 @@
 #ifndef SOCKET_H_INCLUDED
 #define SOCKET_H_INCLUDED
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #ifdef TLS

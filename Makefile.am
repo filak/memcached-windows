@@ -162,8 +162,7 @@ test_basic_tls:
 else
 test_basic_tls:
 	echo "Running basic tests with TLS"
-	rm -rf tmp
-	mkdir tmp
+	mkdir -p tmp
 	ln -sf $(TESTDIR)
 	SSL_TEST=1 WINE_TEST=1 wine $(builddir)/testapp$(EXEEXT)
 	SSL_TEST=1 WINE_TEST=1 prove $(TESTDIR)/binary.t $(TESTDIR)/getset.t $(TESTDIR)/ssl*
@@ -209,9 +208,10 @@ endif
 else
 test:	memcached-debug$(EXEEXT) sizes$(EXEEXT) testapp$(EXEEXT)
 	wine $(builddir)/sizes$(EXEEXT)
+	mkdir -p tmp
 	ln -sf $(TESTDIR)
 	WINE_TEST=1 wine $(builddir)/testapp$(EXEEXT)
-	WINE_TEST=1 $(TESTDIR)/run_test_harness.sh
+	WINE_TEST=1 prove $(TESTDIR)
 endif
 
 docs:

@@ -53,8 +53,7 @@ At least **Windows 7**
 ## Unsupported/Disabled options/features (may support in the future)
 
 * **sasl** (Upstream support since v1.4.3)
-* **extstore** (Upstream support since v1.5.4)
-* **-u/user** (Can use Windows __*runas*__ command or Windows **explorer**'s __*Run as different user*__ context menu)
+* **-u/user** (Better use Windows __*runas*__ command or Windows **explorer**'s __*Run as different user*__ context menu)
 * **-s/unix-socket** ([Mingw-w64](http://mingw-w64.org/) does not currently support **AF_UNIX** even though it is already supported in Windows since **Windows 10 build 1803**. Supporting this natively in Windows 10 **MUST** also need native (not **Cygwin**-emulated) **AF_UNIX**-aware memcached clients. Just use localhost TCP instead!
 * **-k/lock-memory** (Windows does not currently support locking of all paged memory)
 * **-r/coredumps** ([Mingw-w64](http://mingw-w64.org/) currently doesn't support but gdb debugging without coredump is possible)
@@ -171,7 +170,7 @@ history.
 ## Implementation Notes for Devs
 
 * Since the ideal target of this project is to be merged upstream, the codes are carefully written not to cause major merge conflicts with the base code. Header inclusions are not modified but instead redirected to local headers with the same name (e.g. **signal.h**). The local header files then include the real files if necessary using **#include_next**. This means that the codes to be built for non-Windows target are virtually same as the original because all new/modified codes are protected with macros (e.g. **DISABLE_UNIX_SOCKET**).
-* **-Werror** is intentionally disabled for Windows target but this doesn't mean warnings were not or won't be checked! In Windows host build, a lot of warnings are reported for memcached base code. Some of warnings are **-Wimplicit-fallthrough** and **-Wsign-compare**. These warnings can be ignored and fixing will just cause a lot of merge conflicts with the base code. In Linux host build, a lot of warnings are reported for the new/modified codes mostly for the heavy use of **#include_next (#include_next is a GCC extension)**. These warnings can also be ignored unless other method will be used in porting without much code changes with base code's header inclusions (e.g. #ifdefs, #ifndefs, moving includes).
+* **-Werror** and **-pedantic** build options are intentionally disabled for Windows target to allow the use of **#include_next (#include_next is a GCC extension)**. This is just okay unless other method will be used in porting without much code changes with base code's header inclusions (e.g. adding #ifdefs/#ifndefs, moving includes). mingw folder has no build warnings even with **-Wall** and **-Wextra** options enabled and even using a **C++(g++)** compiler as long as **-pedantic** is disabled.
 * __*pipe*__ is implementated as libevent's __*evutil_socketpair*__ because Windows' anonymous pipes won't work with libevent which is used in memcached.
 * *Reading/writing* from/to __*pipe*__ **MUST** use __*pipe_read/pipe_write*__ instead of __*read/write*__, otherwise runtime/logic error occurs. In non-Windows build, it's just __*read/write*__.
 * *Reading/writing* from/to **socket** **MUST** use __*sock_read/sock_write*__ instead of __*read/write*__, otherwise runtime/logic error occurs. In non-Windows build, it's just __*read/write*__.

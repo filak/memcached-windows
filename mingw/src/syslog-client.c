@@ -247,7 +247,7 @@ int setlogmask( int mask ) {
  *
  * Generate a log message using FMT string and option arguments.
  */
-void syslog( int pri, char* fmt, ... ) {
+void syslog( int pri, const char* fmt, ... ) {
     va_list ap;
 
     va_start( ap, fmt );
@@ -260,7 +260,7 @@ void syslog( int pri, char* fmt, ... ) {
  *
  * Generate a log message using FMT and using arguments pointed to by AP.
  */
-void vsyslog( int pri, char* fmt, va_list ap ) {
+void vsyslog( int pri, const char* fmt, va_list ap ) {
     static const char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
                                  };

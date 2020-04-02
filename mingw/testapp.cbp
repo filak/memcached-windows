@@ -29,8 +29,8 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-Wextra" />
 			<Add option="-Wall" />
+			<Add option="-Wmissing-prototypes -Wmissing-declarations -Wredundant-decls" />
 			<Add option="-DHAVE_CONFIG_H" />
 			<Add option="-D_POSIX" />
 			<Add option="-D_GNU_SOURCE" />
@@ -38,6 +38,7 @@
 			<Add option="-D_WIN32_WINNT=0x0601" />
 			<Add option="-DWIN32_LEAN_AND_MEAN" />
 			<Add option="-DTLS" />
+			<Add option="-DEXTSTORE" />
 			<Add option="-DDISABLE_UNIX_SOCKET" />
 			<Add option="-DDISABLE_SIGIGNORE" />
 			<Add option="-DDISABLE_RUNAS_USER" />
