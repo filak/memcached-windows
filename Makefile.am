@@ -53,12 +53,12 @@ memcached_SOURCES += freebsd_priv.c
 endif
 
 if BUILD_MINGW
-memcached_SOURCES += $(srcdir)/mingw/src/mingw_all.c
+memcached_SOURCES += mingw/src/mingw_all.c
 
-testapp_SOURCES += $(srcdir)/mingw/src/mingw_logger.c
-testapp_SOURCES += $(srcdir)/mingw/src/mingw_signal.c
-testapp_SOURCES += $(srcdir)/mingw/src/mingw_socket.c
-testapp_SOURCES += $(srcdir)/mingw/src/mingw_unistd.c
+testapp_SOURCES += mingw/src/mingw_logger.c
+testapp_SOURCES += mingw/src/mingw_signal.c
+testapp_SOURCES += mingw/src/mingw_socket.c
+testapp_SOURCES += mingw/src/mingw_unistd.c
 endif
 
 if ENABLE_SASL
