@@ -71,7 +71,7 @@ sub run_server {
         }
         my $cmd = "$timeout_exe $timeout_args $wine_exe $exe $args";
 
-        print STDERR "RUN: $cmd\n";
+        # print STDERR "RUN: $cmd\n";
         exec "$cmd";
         exit; # NOTREACHED
     }
