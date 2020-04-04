@@ -231,8 +231,10 @@ sub supports_drop_priv {
 }
 
 sub get_memcached_exe {
-    my $exe = "$builddir/memcached.exe";
-    if ($ENV{WINE_TEST}) {
+    my $exe = "$builddir/memcached-debug";
+    if($^O eq 'MSWin32') {
+        $exe = "$builddir/memcached.exe";
+    } elsif ($ENV{WINE_TEST}) {
         $exe = "$builddir/memcached-debug.exe";
     }
     croak("memcached binary doesn't exist.  Haven't run 'make' ?\n") unless -e $exe;
