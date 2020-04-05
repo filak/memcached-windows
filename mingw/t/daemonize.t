@@ -19,15 +19,22 @@ ok(-s $tmpfn, "pid file has length");
 
 open (my $fh, $tmpfn) or die;
 my $readpid = do { local $/; <$fh>; };
-chomp $readpid;
+$readpid =~ s/\s+$//;
 close ($fh);
 
-ok(kill(0, $readpid), "process is still running");
+# wine's pid is the *nix system pid but not same with the app's "STAT pid xxx".
+my $killpid = $readpid;
+if ($ENV{WINE_TEST}) {
+    $killpid = `ps ax | grep '\\-[P] $tmpfn' | awk -F ' ' '{print \$1}'`;
+    $killpid =~ s/\s+$//;
+}
+
+ok(kill(0, $killpid), "process is still running");
 
 my $stats = mem_stats($sock);
 is($stats->{pid}, $readpid, "memcached reports same pid as file");
 
 ok($server->new_sock, "opened new socket");
-ok(kill(9, $readpid), "sent KILL signal");
+ok(kill(9, $killpid), "sent KILL signal");
 sleep 0.5;
 ok(! $server->new_sock, "failed to open new socket");
