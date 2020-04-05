@@ -1,10 +1,17 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 3;
+use Test::More;
 use FindBin qw($Bin);
 use lib "$Bin/lib";
 use MemcachedTest;
+
+if (supports_unix_socket()) {
+    plan tests => 3;
+} else {
+    plan skip_all => 'Unix domain socket is not supported.';
+    exit 0;
+}
 
 my $filename = "/tmp/memcachetest$$";
 

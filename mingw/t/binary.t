@@ -443,12 +443,13 @@ $mc->silent_mutation(::CMD_ADDQ, 'silentadd', 'silentaddval');
     is(1024, $stats{'maxconns'});
     # we run SSL tests over TCP; hence the domain_socket
     # is expected to be NULL.
-    #### Disable the unsupported unix domain sockets ####
-    # if (enabled_tls_testing()) {
-    #     is('NULL', $stats{'domain_socket'});
-    # } else {
-    #     isnt('NULL', $stats{'domain_socket'});
-    # }
+    if (supports_unix_socket()) {
+        if (enabled_tls_testing()) {
+            is('NULL', $stats{'domain_socket'});
+        } else {
+            isnt('NULL', $stats{'domain_socket'});
+        }
+    }
 
     is('on', $stats{'evictions'});
     is('yes', $stats{'cas_enabled'});

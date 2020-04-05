@@ -100,7 +100,11 @@ diag "Data that should expire while stopped.";
 }
 
 #### Windows does not support SIGUSR1 ####
-print $sock "shutdown\r\n";
+if(windows_binary()) {
+    print $sock "shutdown\r\n";
+} else {
+    $server->graceful_stop();
+}
 diag "killed, waiting";
 # TODO: add way to wait for server to fully exit..
 sleep 10;
