@@ -10,15 +10,15 @@
 // #define RESOURCE_API_ERROR_LOG
 
 #ifdef RESOURCE_API_LOG
-#define RESOURCE_API_PRINTF(format, ...) 		MINGW_DEBUG_LOG(format, __VA_ARGS__)
+#define RESOURCE_API_PRINTF(format, ...)         MINGW_DEBUG_LOG(format, __VA_ARGS__)
 #else
-#define RESOURCE_API_PRINTF(format, ...)		do {} while(0)
+#define RESOURCE_API_PRINTF(format, ...)        do {} while(0)
 #endif /* #ifdef RESOURCE_API_LOG */
 #ifdef RESOURCE_API_ERROR_LOG
 #define RESOURCE_API_LOG_IF_ERROR(rc)         \
-		do {if(rc == -1){MINGW_ERROR_LOG("rc: %d errno: %d GetLastError: %u\n", (int)rc, errno, (unsigned)GetLastError());}} while(0)
+        do {if(rc == -1){MINGW_ERROR_LOG("rc: %d errno: %d GetLastError: %u\n", (int)rc, errno, (unsigned)GetLastError());}} while(0)
 #else
-#define RESOURCE_API_LOG_IF_ERROR(rc)			do {} while(0)
+#define RESOURCE_API_LOG_IF_ERROR(rc)            do {} while(0)
 #endif /* #ifdef RESOURCE_API_ERROR_LOG */
 
 int getrusage(int who, struct rusage *usage) {

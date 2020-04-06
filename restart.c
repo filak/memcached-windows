@@ -290,8 +290,8 @@ static long _find_pagesize(void) {
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
     return sysconf(_SC_PAGESIZE);
 #elif defined(_WIN32)
-	SYSTEM_INFO si;
-	GetSystemInfo(&si);
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
     return (long)si.dwPageSize;
 #else
     // A good guess.

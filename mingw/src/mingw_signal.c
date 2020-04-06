@@ -19,9 +19,9 @@
 //#define SIGNAL_API_LOG
 
 #ifdef SIGNAL_API_LOG
-#define SIGNAL_API_PRINTF(format, ...) 		MINGW_DEBUG_LOG(format, __VA_ARGS__)
+#define SIGNAL_API_PRINTF(format, ...)      MINGW_DEBUG_LOG(format, __VA_ARGS__)
 #else
-#define SIGNAL_API_PRINTF(format, ...)		do {} while(0)
+#define SIGNAL_API_PRINTF(format, ...)      do {} while(0)
 #endif /* #ifdef SIGNAL_API_LOG */
 
 int kill(unsigned int pid, int sig) {
@@ -57,22 +57,22 @@ struct signal_info {
 };
 char *strsignal(int sig) {
     static const struct signal_info sig_tbl[] = {
-        {"SIGHUP",	1},
-        {"SIGINT",	2},
-        {"SIGQUIT", 3},
-        {"SIGILL",	4},
-        {"SIGTRAP", 5},
-        {"SIGIOT",	6},
-        {"SIGEMT",	7},
-        {"SIGFPE",	8},
-        {"SIGKILL", 9},
-        {"SIGBUS",	10},
-        {"SIGSEGV", 11},
-        {"SIGSYS",	12},
-        {"SIGTERM", 15},
-        {"SIGBREAK",21},
-        {"SIGABRT",	22},
-        {"UNKNOWN",	-1}
+        {"SIGHUP",      1},
+        {"SIGINT",      2},
+        {"SIGQUIT",     3},
+        {"SIGILL",      4},
+        {"SIGTRAP",     5},
+        {"SIGIOT",      6},
+        {"SIGEMT",      7},
+        {"SIGFPE",      8},
+        {"SIGKILL",     9},
+        {"SIGBUS",      10},
+        {"SIGSEGV",     11},
+        {"SIGSYS",      12},
+        {"SIGTERM",     15},
+        {"SIGBREAK",    21},
+        {"SIGABRT",     22},
+        {"UNKNOWN",     -1}
     };
     const struct signal_info *sig_ptr = sig_tbl;
 

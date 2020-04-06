@@ -13,17 +13,17 @@
 //#define UNISTD_API_ERROR_LOG
 
 #ifdef UNISTD_API_LOG
-#define UNISTD_API_PRINTF(format, ...) 		MINGW_DEBUG_LOG(format, __VA_ARGS__)
-#define RUN_CMD_PROC_TYPE					CREATE_NEW_CONSOLE
+#define UNISTD_API_PRINTF(format, ...)      MINGW_DEBUG_LOG(format, __VA_ARGS__)
+#define RUN_CMD_PROC_TYPE                   CREATE_NEW_CONSOLE
 #else
-#define UNISTD_API_PRINTF(format, ...)		do {} while(0)
-#define RUN_CMD_PROC_TYPE					CREATE_NO_WINDOW
+#define UNISTD_API_PRINTF(format, ...)      do {} while(0)
+#define RUN_CMD_PROC_TYPE                   CREATE_NO_WINDOW
 #endif /* #ifdef UNISTD_API_LOG */
 #ifdef UNISTD_API_ERROR_LOG
 #define UNISTD_API_LOG_IF_ERROR(rc)         \
-		do {if(rc == -1){MINGW_ERROR_LOG("rc: %d errno: %d GetLastError: %u\n", (int)rc, errno, (unsigned)GetLastError());}} while(0)
+        do {if(rc == -1){MINGW_ERROR_LOG("rc: %d errno: %d GetLastError: %u\n", (int)rc, errno, (unsigned)GetLastError());}} while(0)
 #else
-#define UNISTD_API_LOG_IF_ERROR(rc)			do {} while(0)
+#define UNISTD_API_LOG_IF_ERROR(rc)         do {} while(0)
 #endif /* #ifdef UNISTD_API_ERROR_LOG */
 
 int run_cmd_background(char *argv[], pid_t *pid) {

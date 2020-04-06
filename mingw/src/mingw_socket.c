@@ -20,18 +20,18 @@
 //#define SOCKET_API_ERROR_LOG
 
 #ifdef SOCKET_API_LOG
-#define SOCKET_API_PRINTF(format, ...) 		MINGW_DEBUG_LOG(format, __VA_ARGS__)
+#define SOCKET_API_PRINTF(format, ...)      MINGW_DEBUG_LOG(format, __VA_ARGS__)
 #else
-#define SOCKET_API_PRINTF(format, ...)		do {} while(0)
+#define SOCKET_API_PRINTF(format, ...)      do {} while(0)
 #endif /* #ifdef SOCKET_API_LOG */
 #ifdef SOCKET_API_ERROR_LOG
 #define SOCKET_API_LOG_IF_ERROR(sock, rc)         \
-		do {if(rc == -1){MINGW_ERROR_LOG("sock:%d rc:%d errno:%d WSAGetLastError:%d\n", sock, (int)rc, errno, WSAGetLastError());}} while(0)
+        do {if(rc == -1){MINGW_ERROR_LOG("sock:%d rc:%d errno:%d WSAGetLastError:%d\n", sock, (int)rc, errno, WSAGetLastError());}} while(0)
 #define TLS_API_LOG_IF_ERROR(tls, rc)         \
-		do {if(rc == -1){MINGW_ERROR_LOG("tls:%p[sock:%d] rc:%d SSL_get_error:%d errno:%d WSAGetLastError:%d\n", tls, SSL_get_fd(tls), (int)rc, SSL_get_error(tls, rc), errno, WSAGetLastError());}} while(0)
+        do {if(rc == -1){MINGW_ERROR_LOG("tls:%p[sock:%d] rc:%d SSL_get_error:%d errno:%d WSAGetLastError:%d\n", tls, SSL_get_fd(tls), (int)rc, SSL_get_error(tls, rc), errno, WSAGetLastError());}} while(0)
 #else
-#define SOCKET_API_LOG_IF_ERROR(sock, rc)			do {} while(0)
-#define TLS_API_LOG_IF_ERROR(tls, rc)			    do {} while(0)
+#define SOCKET_API_LOG_IF_ERROR(sock, rc)   do {} while(0)
+#define TLS_API_LOG_IF_ERROR(tls, rc)       do {} while(0)
 #endif /* #ifdef SOCKET_API_ERROR_LOG */
 
 struct wsa_errno_info {
@@ -40,24 +40,24 @@ struct wsa_errno_info {
 };
 static int conv_wsaerr_to_errno(int wsa_err) {
     static const struct wsa_errno_info wsa_errno_tbl[] = {
-        {WSAEWOULDBLOCK,		EWOULDBLOCK},
-        {WSAEBADF,				EBADF},
-        {WSAECONNREFUSED,		ECONNREFUSED},
-        {WSAEFAULT,				EFAULT},
-        {WSAEINTR,				EINTR},
-        {WSAEINVAL,				EINVAL},
-        {WSA_NOT_ENOUGH_MEMORY,	ENOMEM},
-        {WSAENOTCONN,			ENOTCONN},
-        {WSAENOTSOCK,			ENOTSOCK},
-        {WSAEACCES,				EACCES},
-        {WSAEALREADY,			EALREADY},
-        {WSAECONNRESET,			ECONNRESET},
-        {WSAEDESTADDRREQ,		EDESTADDRREQ},
-        {WSAEISCONN,			EISCONN},
-        {WSAEMSGSIZE,			EMSGSIZE},
-        {WSAENOBUFS,			ENOBUFS},
-        {WSAEOPNOTSUPP,			EOPNOTSUPP},
-        {-1,					-1},
+        {WSAEWOULDBLOCK,        EWOULDBLOCK},
+        {WSAEBADF,              EBADF},
+        {WSAECONNREFUSED,       ECONNREFUSED},
+        {WSAEFAULT,             EFAULT},
+        {WSAEINTR,              EINTR},
+        {WSAEINVAL,             EINVAL},
+        {WSA_NOT_ENOUGH_MEMORY, ENOMEM},
+        {WSAENOTCONN,           ENOTCONN},
+        {WSAENOTSOCK,           ENOTSOCK},
+        {WSAEACCES,             EACCES},
+        {WSAEALREADY,           EALREADY},
+        {WSAECONNRESET,         ECONNRESET},
+        {WSAEDESTADDRREQ,       EDESTADDRREQ},
+        {WSAEISCONN,            EISCONN},
+        {WSAEMSGSIZE,           EMSGSIZE},
+        {WSAENOBUFS,            ENOBUFS},
+        {WSAEOPNOTSUPP,         EOPNOTSUPP},
+        {-1,                    -1},
     };
     const struct wsa_errno_info *wsa_errno_ptr = wsa_errno_tbl;
 

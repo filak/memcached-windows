@@ -7,8 +7,8 @@
 
 /* Structure for scatter/gather I/O. which MUST be same as WSABUF structure  */
 struct iovec {
-    ULONG iov_len;	/* Length of data same as WSABUF's len  */
-    void *iov_base;	/* Pointer to data same as WSABUF's buf.  */
+    ULONG iov_len;      /* Length of data same as WSABUF's len  */
+    void *iov_base;     /* Pointer to data same as WSABUF's buf.  */
 };
 
 ssize_t pread(int fd, void *buf, size_t count, off_t offset);

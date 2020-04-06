@@ -8,15 +8,15 @@
 //#define UIO_API_ERROR_LOG
 
 #ifdef UIO_API_LOG
-#define UIO_API_PRINTF(format, ...) 		MINGW_DEBUG_LOG(format, __VA_ARGS__)
+#define UIO_API_PRINTF(format, ...)         MINGW_DEBUG_LOG(format, __VA_ARGS__)
 #else
-#define UIO_API_PRINTF(format, ...)		    do {} while(0)
+#define UIO_API_PRINTF(format, ...)         do {} while(0)
 #endif /* #ifdef UIO_API_LOG */
 #ifdef UIO_API_ERROR_LOG
 #define UIO_API_LOG_IF_ERROR(fd, rc)         \
-		do {if(rc < 0){MINGW_ERROR_LOG("fd:%d rc:%d errno:%d GetLastError:%u\n", fd, (int)rc, errno, (unsigned)GetLastError());}} while(0)
+        do {if(rc < 0){MINGW_ERROR_LOG("fd:%d rc:%d errno:%d GetLastError:%u\n", fd, (int)rc, errno, (unsigned)GetLastError());}} while(0)
 #else
-#define UIO_API_LOG_IF_ERROR(fd, rc)	    do {} while(0)
+#define UIO_API_LOG_IF_ERROR(fd, rc)        do {} while(0)
 #endif /* #ifdef UIO_API_ERROR_LOG */
 
 static LONGLONG lseek_win(HANDLE hfile, LONGLONG offset, int whence);
