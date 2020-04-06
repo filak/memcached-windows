@@ -59,9 +59,9 @@
 #include <sys/sysctl.h>
 #endif
 
-#ifdef _WIN32
+#ifdef SFD_VALUE_IS_RANDOM
 #include "conn_list.h"
-#endif /* #ifdef _WIN32 */
+#endif /* #ifdef SFD_VALUE_IS_RANDOM */
 
 /*
  * forward declarations
@@ -494,7 +494,7 @@ static bool rbuf_switch_to_malloc(conn *c) {
  * being able to directly index the conns array by FD.
  */
 static void conn_init(void) {
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
     /* We're unlikely to see an FD much higher than maxconns. */
     int next_fd = dup(1);
     if (next_fd < 0) {
@@ -508,7 +508,7 @@ static void conn_init(void) {
     close(next_fd);
 #else
     max_fds = settings.maxconns;
-#endif /* #ifndef _WIN32 */
+#endif /* #ifndef SFD_VALUE_IS_RANDOM */
 
 #ifndef DISABLE_RLIMIT_NOFILE
     struct rlimit rl;
@@ -527,9 +527,9 @@ static void conn_init(void) {
         /* This is unrecoverable so bail out early. */
         exit(1);
     }
-#ifdef _WIN32
+#ifdef SFD_VALUE_IS_RANDOM
     conn_list_init(max_fds);
-#endif /* #ifdef _WIN32 */
+#endif /* #ifdef SFD_VALUE_IS_RANDOM */
 }
 
 static const char *prot_text(enum protocol prot) {
@@ -604,17 +604,17 @@ conn *conn_new(const int sfd, enum conn_states init_state,
                 struct event_base *base, void *ssl) {
     conn *c = NULL;
 
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
     assert(sfd >= 0 && sfd < max_fds);
     c = conns[sfd];
-#endif /* #ifndef _WIN32 */
+#endif /* #ifndef SFD_VALUE_IS_RANDOM */
 
     if (NULL == c) {
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
         c = (conn *)calloc(1, sizeof(conn));
 #else
         c = conn_list_open(sfd);
-#endif /* #ifndef _WIN32 */
+#endif /* #ifndef SFD_VALUE_IS_RANDOM */
         if (!c) {
             STATS_LOCK();
             stats.malloc_fails++;
@@ -648,10 +648,10 @@ conn *conn_new(const int sfd, enum conn_states init_state,
         stats_state.conn_structs++;
         STATS_UNLOCK();
 
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
         c->sfd = sfd;
         conns[sfd] = c;
-#endif /* #ifdef _WIN32 */
+#endif /* #ifdef SFD_VALUE_IS_RANDOM */
     }
 
     c->transport = transport;
@@ -924,14 +924,14 @@ static void conn_cleanup(conn *c) {
 void conn_free(conn *c) {
     if (c) {
         assert(c != NULL);
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
         assert(c->sfd >= 0 && c->sfd < max_fds);
-#endif /* #ifndef _WIN32 */
+#endif /* #ifndef SFD_VALUE_IS_RANDOM */
 
         MEMCACHED_CONN_DESTROY(c);
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
         conns[c->sfd] = NULL;
-#endif /* #ifndef _WIN32 */
+#endif /* #ifndef SFD_VALUE_IS_RANDOM */
         if (c->rbuf)
             free(c->rbuf);
 #ifdef TLS
@@ -939,11 +939,11 @@ void conn_free(conn *c) {
             c->ssl_wbuf = NULL;
 #endif
 
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
         free(c);
 #else
         conn_list_close(c);
-#endif /* #ifndef _WIN32 */
+#endif /* #ifndef SFD_VALUE_IS_RANDOM */
     }
 }
 
@@ -973,9 +973,9 @@ static void conn_close(conn *c) {
     }
 #endif
     sock_close(c->sfd);
-#ifdef _WIN32
+#ifdef SFD_VALUE_IS_RANDOM
     conn_list_close(c);
-#endif /* #ifdef _WIN32 */
+#endif /* #ifdef SFD_VALUE_IS_RANDOM */
     pthread_mutex_lock(&conn_lock);
     allow_new_conns = true;
     pthread_mutex_unlock(&conn_lock);

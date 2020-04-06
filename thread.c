@@ -640,12 +640,12 @@ void redispatch_conn(conn *c) {
     LIBEVENT_THREAD *thread = c->thread;
 
     buf[0] = 'r';
-#ifndef _WIN32
+#ifndef SFD_VALUE_IS_RANDOM
     memcpy(&buf[1], &c->sfd, sizeof(int));
 #else
-    /* Use conn_idx in Windows as means of lookup similar to timeout handler */
+    /* Use conn_idx as index for systems with random sfd value like Windows */
     memcpy(&buf[1], &c->conn_idx, sizeof(int));
-#endif /* #ifndef _WIN32 */
+#endif /* #ifndef SFD_VALUE_IS_RANDOM */
     if (pipe_write(thread->notify_send_fd, buf, REDISPATCH_MSG_SIZE) != REDISPATCH_MSG_SIZE) {
         perror("Writing redispatch to thread notify pipe");
     }

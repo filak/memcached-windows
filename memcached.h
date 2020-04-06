@@ -670,20 +670,25 @@ typedef struct _io_wrap {
     bool active;              /* tells if IO was dispatched or not */
 } io_wrap;
 #endif
+/* In Windows, socket fd values are always random (e.g. 1004->960->500->932) */
+#ifdef _WIN32
+#define SFD_VALUE_IS_RANDOM
+#endif /* #ifdef _WIN32 */
 /**
  * The structure representing a connection into memcached.
  */
 struct conn {
-#ifdef _WIN32
-    /* In Windows, socket fds can't be used as index to conns array because the values
-     * are random and can even start beyond 1000! To achieve zero-loop without changing
-     * much of how memcached uses the conns array, 2 indeces are added to be used
-     * in linking connection objects. Allocating/Reusing/Closing a connection object no
-     * longer requires a loop or other means that can add runtime overhead.
+#ifdef SFD_VALUE_IS_RANDOM
+    /* In Windows, socket fds can't be used directly as index to conns array
+     * because the values are random and can even start beyond 1000! To achieve
+     * zero-loop without changing how memcached looks up the conns array by index,
+     * 2 indeces are added to be used in linking connection objects.
+     * Allocating/Reusing/Closing a connection object no longer requires a loop
+     * or other means that can add runtime overhead.
      */
     int conn_idx;       /** index of this conn object to conns array */
     int next_free_idx;  /** index of the next available conn object */
-#endif /* #ifdef _WIN32 */
+#endif /* #ifdef SFD_VALUE_IS_RANDOM */
     sasl_conn_t *sasl_conn;
     int    sfd;
     bool sasl_started;
