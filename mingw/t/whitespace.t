@@ -1,11 +1,12 @@
 #!/usr/bin/perl
 use strict;
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 our @files;
 
 BEGIN {
-    chdir "$Bin/.." or die;
-    unless (-d "$Bin/../.git") {
+    my $top_srcdir = "$RealBin/../..";
+    chdir "$top_srcdir" or die;
+    unless (-d "$top_srcdir/.git") {
         use Test::More;
         plan skip_all => "Skipping test because this does not appear to be a memcached git working directory";
         exit 0;
@@ -19,9 +20,13 @@ BEGIN {
     push(@exempted, glob("m4/*backport*m4"));
     push(@exempted, glob("*.orig"));
     push(@exempted, glob(".*.swp"));
+    push(@exempted, glob("mingw/**"));              # Exempt Code::Blocks project files
+    push(@exempted, glob("mingw/bin/**/**"));       # Exempt Code::Blocks built files
+    push(@exempted, glob("mingw/build/*.patch"));   # Exempt mingw/build patch files
+    my $mingw_build_dir = "mingw/build";            # Exclude mingw/build files from git result
     my %exempted_hash = map { $_ => 1 } @exempted;
 
-    my @stuff = split /\0/, `git ls-files -z -c -m -o --exclude-standard`;
+    my @stuff = split /\0/, `git ls-files -z -c -m -o --exclude-standard --exclude=$mingw_build_dir`;
     @files = grep { ! $exempted_hash{$_} } @stuff;
 
     # We won't find any files if git isn't installed.  If git isn't

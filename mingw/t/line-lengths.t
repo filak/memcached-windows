@@ -1,10 +1,11 @@
 #!/usr/bin/perl
 use strict;
-use FindBin qw($Bin);
+use FindBin qw($RealBin);
 our @files;
 
 BEGIN {
-    chdir "$Bin/../../" or die;
+    my $top_srcdir = "$RealBin/../..";
+    chdir "$top_srcdir" or die;
     @files = ( "doc/protocol.txt" );
 }
 
