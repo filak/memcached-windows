@@ -8,7 +8,7 @@
  * overhead at the expense of adding 2 indeces(8 bytes) in @ref conn.
  */
 #include "conn_list.h"
-#include <sys/socket.h>
+#include "mingw_logger.h"
 
 //#define CONN_LIST_API_LOG
 
