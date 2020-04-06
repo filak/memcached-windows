@@ -100,7 +100,7 @@ diag "Data that should expire while stopped.";
 }
 
 #### Windows does not support SIGUSR1 ####
-if(windows_binary()) {
+if(windows_test()) {
     print $sock "shutdown\r\n";
 } else {
     $server->graceful_stop();

@@ -56,11 +56,14 @@ sub run_server {
 
     my $childpid = fork();
 
-    # my $root = '';
-    # $root = "-u root" if ($< == 0);
+    # Windows port does not support seccomp yet
+    if(!MemcachedTest::windows_test()) {
+        my $root = '';
+        $root = "-u root" if ($< == 0);
 
-    # test build requires more privileges
-    # $args .= " -o relaxed_privileges";
+        test build requires more privileges
+        $args .= " -o relaxed_privileges";
+    }
 
     unless($childpid) {
         my $wine_exe = MemcachedTest::get_wine_exe();

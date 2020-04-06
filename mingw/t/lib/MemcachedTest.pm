@@ -16,7 +16,7 @@ my @unixsockets = ();
 @EXPORT = qw(new_memcached sleep mem_get_is mem_gets mem_gets_is mem_stats
              supports_sasl free_port supports_drop_priv supports_extstore
              wait_ext_flush supports_tls enabled_tls_testing supports_unix_socket
-             windows_binary run_help);
+             windows_test run_help);
 
 use constant MAX_READ_WRITE_SIZE => 16384;
 use constant SRV_CRT => "server_crt.pem";
@@ -220,11 +220,8 @@ sub supports_unix_socket {
     return 0;
 }
 
-sub windows_binary {
-    my $exe = get_memcached_exe();
-    my $output = `file $exe`;
-    return 1 if $output =~ /PE32/i;
-    return 0;
+sub windows_test {
+    return ($^O eq 'MSWin32' || $ENV{WINE_TEST});
 }
 
 sub enabled_tls_testing {
@@ -305,8 +302,8 @@ sub new_memcached {
         croak("Failed to connect to specified memcached server.") unless $conn;
     }
 
-    # Windows does not support seccomp
-    if(!windows_binary()) {
+    # Windows port does not support seccomp yet
+    if(!windows_test()) {
         if ($< == 0) {
             $args .= " -u root";
         }
