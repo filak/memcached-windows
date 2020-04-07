@@ -6,5 +6,6 @@
 int conn_list_init(int conns_max);
 conn *conn_list_open(int sfd);
 void conn_list_close(conn *con_ptr);
+unsigned int conn_list_alloc_count(void);
 
 #endif // CONN_MAP_H_INCLUDED

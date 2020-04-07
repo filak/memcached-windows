@@ -20,6 +20,7 @@
 
 static int f_conn_list_max;
 static int f_available_count;
+static unsigned int f_conn_list_alloc_count;
 static int f_next_free_idx;
 static pthread_mutex_t          conns_list_lock = PTHREAD_MUTEX_INITIALIZER;
 #define CONN_LIST_LOCK()        pthread_mutex_lock(&conns_list_lock)
@@ -33,6 +34,7 @@ int conn_list_init(int conns_max) {
     f_conn_list_max = conns_max;
     f_available_count = conns_max;
     f_next_free_idx = 0;
+    f_conn_list_alloc_count = 0;
 
     CONN_LIST_PRINTF("conns_max: %d } %d\n", conns_max, rc);
 
@@ -64,6 +66,7 @@ conn *conn_list_open(int sfd) {
             con_ptr->conn_idx = f_next_free_idx;
             conns[f_next_free_idx] = con_ptr;
             con_ptr->next_free_idx = ++f_next_free_idx;
+            ++f_conn_list_alloc_count;
         }
 
         /* Associate with new sfd */
@@ -105,5 +108,13 @@ void conn_list_close(conn *con_ptr) {
     CONN_LIST_PRINTF("con_ptr:%p[sfd:%d] }\n", con_ptr, con_ptr->sfd);
 
     CONN_LIST_UNLOCK();
+}
+
+unsigned int conn_list_alloc_count(void) {
+    CONN_LIST_PRINTF(" {\n");
+
+    CONN_LIST_PRINTF(" } %u\n", f_conn_list_alloc_count);
+
+    return f_conn_list_alloc_count;
 }
 

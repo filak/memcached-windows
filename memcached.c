@@ -644,11 +644,11 @@ conn *conn_new(const int sfd, enum conn_states init_state,
             return NULL;
         }
 
+#ifndef SFD_VALUE_IS_RANDOM
         STATS_LOCK();
         stats_state.conn_structs++;
         STATS_UNLOCK();
 
-#ifndef SFD_VALUE_IS_RANDOM
         c->sfd = sfd;
         conns[sfd] = c;
 #endif /* #ifdef SFD_VALUE_IS_RANDOM */
@@ -3165,7 +3165,11 @@ static void server_stats(ADD_STAT add_stats, conn *c) {
     if (settings.maxconns_fast) {
         APPEND_STAT("rejected_connections", "%llu", (unsigned long long)stats.rejected_conns);
     }
+#ifndef SFD_VALUE_IS_RANDOM
     APPEND_STAT("connection_structures", "%u", stats_state.conn_structs);
+#else
+    APPEND_STAT("connection_structures", "%u", conn_list_alloc_count());
+#endif /* #ifdef SFD_VALUE_IS_RANDOM */
     APPEND_STAT("response_obj_bytes", "%llu", (unsigned long long)thread_stats.response_obj_bytes);
     APPEND_STAT("response_obj_total", "%llu", (unsigned long long)thread_stats.response_obj_total);
     APPEND_STAT("response_obj_free", "%llu", (unsigned long long)thread_stats.response_obj_free);
