@@ -50,7 +50,7 @@ _cpu="$2"
   unset CC
   cmake . ${options} \
     "-DCMAKE_C_FLAGS=-static-libgcc ${_CFLAGS}" \
-    "-DCMAKE_CXX_FLAGS=-static-libgcc ${DCMAKE_CXX_FLAGS}"
+    "-DCMAKE_CXX_FLAGS=-static-libgcc -static-libstdc++ ${_CFLAGS}"
 
   make -j 2 crypto
   make -j 2 ssl
