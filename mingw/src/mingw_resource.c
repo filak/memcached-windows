@@ -4,7 +4,6 @@
  */
 #include <sys/resource.h>
 #include <windows.h>
-#include <stdlib.h>
 
 // #define RESOURCE_API_LOG
 // #define RESOURCE_API_ERROR_LOG
@@ -43,24 +42,21 @@ int getrusage(int who, struct rusage *usage) {
          * https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocesstimes
          */
         uint64_t time_val;
-        lldiv_t div_mod_val = {0, 0};
 
         time_val = ((uint64_t)kernel_time.dwHighDateTime << 32) | kernel_time.dwLowDateTime;
-        div_mod_val = lldiv((long long)time_val, (long long)10000000);
-        usage->ru_stime.tv_sec = div_mod_val.quot;
-        usage->ru_stime.tv_usec = div_mod_val.rem / 10;
+        usage->ru_stime.tv_sec = (long)(time_val / 10000000);
+        usage->ru_stime.tv_usec = (long)(time_val % 100000000);
 
         time_val = ((uint64_t)user_time.dwHighDateTime << 32) | user_time.dwLowDateTime;
-        div_mod_val = lldiv((long long)time_val, (long long)10000000);
-        usage->ru_utime.tv_sec = div_mod_val.quot;
-        usage->ru_utime.tv_usec = div_mod_val.rem / 10;
+        usage->ru_utime.tv_sec = (long)(time_val / 10000000);
+        usage->ru_utime.tv_usec = (long)(time_val % 100000000);
     } else {
         rc = -1;
     }
 
-    RESOURCE_API_PRINTF("%d, %p[user[%lld.%06lld],system[%lld.%06lld] } %d\n", who, usage,
-                        (long long)usage->ru_utime.tv_sec, (long long)usage->ru_utime.tv_usec,
-                        (long long)usage->ru_stime.tv_sec, (long long)usage->ru_stime.tv_usec, rc);
+    RESOURCE_API_PRINTF("%d, %p[user[%ld.%06ld],system[%ld.%06ld] } %d\n", who, usage,
+                        (long)usage->ru_utime.tv_sec, (long)usage->ru_utime.tv_usec,
+                        (long)usage->ru_stime.tv_sec, (long)usage->ru_stime.tv_usec, rc);
 
     RESOURCE_API_LOG_IF_ERROR(rc);
 
