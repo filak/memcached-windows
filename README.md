@@ -2,7 +2,7 @@
 
 [memcached](https://memcached.org/) is a high performance multithreaded event-based key/value cache store intended to be used in a distributed system.
 
-**memcached-windows** is a native Windows port of memcached without using a compatibility layer like Cygwin or Windows Subsystem for Linux. It is instead using [Mingw-w64](http://mingw-w64.org/) to produce native Win32 and Win64 binaries. Build script is also available to build reproducible binaries similar to [cURL](https://curl.haxx.se/windows/) (see [curl-for-win](https://github.com/curl/curl-for-win/)). This means that rebuild can always produce same binaries using same compiler package version. This script is used in CI build.
+**memcached-windows** is a native Windows port of memcached without using a compatibility layer like Cygwin or Windows Subsystem for Linux. It is instead using [Mingw-w64](http://mingw-w64.org/) to produce native Win32 and Win64 binaries. See [Why native?](https://github.com/jefyt/memcached-windows/wiki/Why-native%3F) wiki for the advantages. Build script is available to build reproducible binaries similar to [cURL](https://curl.haxx.se/windows/) (see [curl-for-win](https://github.com/curl/curl-for-win/)). This means that rebuild can always produce same binaries using same compiler package version. This script is used in CI build.
 
 **memcached-windows** is verified using the same test suite as the official [memcached](https://memcached.org/). All tests **PASSED**!
 
@@ -56,7 +56,7 @@ At least **Windows 7**
 * **-u/user** (Better use Windows __*runas*__ command or Windows **explorer**'s __*Run as different user*__ context menu)
 * **-s/unix-socket** ([Mingw-w64](http://mingw-w64.org/) does not currently support **AF_UNIX** even though it is already supported in Windows since **Windows 10 build 1803**. Supporting this natively in Windows 10 **MUST** also need native (not **Cygwin**-emulated) **AF_UNIX**-aware memcached clients. Just use localhost TCP instead!
 * **-k/lock-memory** (Windows does not currently support locking of all paged memory)
-* **-r/coredumps** ([Mingw-w64](http://mingw-w64.org/) currently doesn't support but gdb debugging without coredump is possible)
+* **-r/coredumps** ([Mingw-w64](http://mingw-w64.org/) currently doesn't support coredump but gdb debugging without it is possible. [Dr. Mingw](https://github.com/jrfonseca/drmingw) is a good postmortem debugging tool alternative for MinGW.)
 * **seccomp** (Linux-specific)
 
 ## Building on Windows Host (IDE-based, recommended for easier debugging)
