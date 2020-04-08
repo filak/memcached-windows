@@ -156,6 +156,8 @@ static void * alloc_large_chunk(const size_t limit)
         fprintf(stderr, "Failed to set super pages\n");
         ptr = NULL;
     }
+#elif defined(_WIN32)
+    ptr = alloc_large_chunk_win(limit);
 #else
     ptr = malloc(limit);
 #endif

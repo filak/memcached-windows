@@ -10,9 +10,10 @@
 #define MS_SYNC         4       /* Synchronous memory sync.  */
 
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
-
 int munmap(void *addr, size_t length);
-
 int msync(void *addr, size_t length, int flags);
+
+void *alloc_large_chunk_win(const size_t limit);
+int enable_large_pages_win(void);
 
 #endif // MMAN_H_INCLUDED

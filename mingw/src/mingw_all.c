@@ -12,3 +12,4 @@
 #include "mingw_unistd.c"
 #include "mingw_resource.c"
 #include "mingw_uio.c"
+#include "win_util.c"

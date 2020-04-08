@@ -8431,6 +8431,8 @@ static int enable_large_pages(void) {
         return -1;
     }
     return 0;
+#elif defined(_WIN32)
+    return enable_large_pages_win();
 #else
     return -1;
 #endif
