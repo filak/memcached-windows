@@ -36,6 +36,9 @@ _cpu="$2"
   find . -name '*.Plo' -type f -delete
   find . -name '*.pc'  -type f -delete
 
+  export CFLAGS="-m${_cpu} -fno-ident -DNDEBUG -O2"
+  [ "${_cpu}" = '32' ] && CFLAGS="${_CFLAGS} -fno-asynchronous-unwind-tables"
+
   options=''
   options="${options} --host=${_TRIPLET}"
   options="${options} --enable-shared=no"
