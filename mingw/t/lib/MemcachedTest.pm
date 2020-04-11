@@ -280,6 +280,7 @@ sub new_memcached {
     my $port = $passed_port;
     my $host = '127.0.0.1';
     my $ssl_enabled  = enabled_tls_testing();
+    my $unix_socket_disabled  = !supports_unix_socket();
 
     if ($ENV{T_MEMD_USE_DAEMON}) {
         my ($host, $port) = ($ENV{T_MEMD_USE_DAEMON} =~ m/^([^:]+):(\d+)$/);
@@ -311,8 +312,7 @@ sub new_memcached {
     }
 
     my $udpport;
-    if ($args =~ /-l (\S+)/ || ($ssl_enabled && ($args !~ /-s (\S+)/))
-        || !supports_unix_socket()) {
+    if ($args =~ /-l (\S+)/ || (($ssl_enabled || $unix_socket_disabled) && ($args !~ /-s (\S+)/))) {
         if (!$port) {
             $port = free_port();
         }

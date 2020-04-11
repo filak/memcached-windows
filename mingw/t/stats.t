@@ -1,16 +1,10 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More;
+use Test::More tests => 108;
 use FindBin qw($Bin);
 use lib "$Bin/lib";
 use MemcachedTest;
-
-if (supports_unix_socket()) {
-    plan tests => 108;
-} else {
-    plan tests => 107;
-}
 
 my $server = new_memcached("-o no_lru_crawler,no_lru_maintainer");
 my $sock = $server->sock;
@@ -145,12 +139,10 @@ my $settings = mem_stats($sock, ' settings');
 is(1024, $settings->{'maxconns'});
 # we run SSL tests over TCP; hence the domain_socket
 # is expected to be NULL.
-if (supports_unix_socket()) {
-    if (enabled_tls_testing()) {
-        is('NULL', $settings->{'domain_socket'});
-    } else {
-        isnt('NULL', $settings->{'domain_socket'});
-    }
+if (enabled_tls_testing() || !supports_unix_socket()) {
+    is('NULL', $settings->{'domain_socket'});
+} else {
+    isnt('NULL', $settings->{'domain_socket'});
 }
 is('on', $settings->{'evictions'});
 is('yes', $settings->{'cas_enabled'});

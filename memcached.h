@@ -401,11 +401,9 @@ struct settings {
     rel_time_t oldest_live; /* ignore existing items older than this */
     uint64_t oldest_cas; /* ignore existing items with CAS values lower than this */
     int evict_to_free;
-#ifndef DISABLE_UNIX_SOCKET
     char *socketpath;   /* path to unix socket if using local socket */
-    int access;  /* access mask (a la chmod) for unix domain socket */
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
     char *auth_file;    /* path to user authentication file */
+    int access;  /* access mask (a la chmod) for unix domain socket */
     double factor;          /* chunk size growth factor */
     int chunk_size;
     int num_threads;        /* number of worker (without dispatcher) libevent threads to run */

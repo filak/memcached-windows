@@ -258,9 +258,7 @@ static void stats_reset(void) {
 
 static void settings_init(void) {
     settings.use_cas = true;
-#ifndef DISABLE_UNIX_SOCKET
     settings.access = 0700;
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
     settings.port = 11211;
     settings.udpport = 0;
 #ifdef TLS
@@ -284,9 +282,7 @@ static void settings_init(void) {
     settings.oldest_live = 0;
     settings.oldest_cas = 0;          /* supplements accuracy of oldest_live */
     settings.evict_to_free = 1;       /* push old items out of cache when memory runs out */
-#ifndef DISABLE_UNIX_SOCKET
     settings.socketpath = NULL;       /* by default, not using a unix socket */
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
     settings.auth_file = NULL;        /* by default, not using ASCII authentication tokens */
     settings.factor = 1.25;
     settings.chunk_size = 48;         /* space for a modest key and value */
@@ -657,7 +653,6 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     c->transport = transport;
     c->protocol = settings.binding_protocol;
 
-#ifndef DISABLE_UNIX_SOCKET
     /* unix socket mode doesn't need this, so zeroed out.  but why
      * is this done for every command?  presumably for UDP
      * mode.  */
@@ -666,9 +661,6 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     } else {
         c->request_addr_size = 0;
     }
-#else
-    c->request_addr_size = sizeof(c->request_addr);
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
 
     if (transport == tcp_transport && init_state == conn_new_cmd) {
         if (getpeername(sfd, (struct sockaddr *) &c->request_addr,
@@ -3295,11 +3287,9 @@ static void process_stat_settings(ADD_STAT add_stats, void *c) {
     APPEND_STAT("verbosity", "%d", settings.verbose);
     APPEND_STAT("oldest", "%lu", (unsigned long)settings.oldest_live);
     APPEND_STAT("evictions", "%s", settings.evict_to_free ? "on" : "off");
-#ifndef DISABLE_UNIX_SOCKET
     APPEND_STAT("domain_socket", "%s",
                 settings.socketpath ? settings.socketpath : "NULL");
     APPEND_STAT("umask", "%o", settings.access);
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
     APPEND_STAT("growth_factor", "%.2f", settings.factor);
     APPEND_STAT("chunk_size", "%d", settings.chunk_size);
     APPEND_STAT("num_threads", "%d", settings.num_threads);
@@ -3416,9 +3406,6 @@ static inline void get_conn_text(const conn *c, const int af,
     addr_text[0] = '\0';
     const char *protoname = "?";
     unsigned short port = 0;
-#ifndef DISABLE_UNIX_SOCKET
-    size_t pathlen = 0;
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
 
     switch (af) {
         case AF_INET:
@@ -3445,6 +3432,8 @@ static inline void get_conn_text(const conn *c, const int af,
 
 #ifndef DISABLE_UNIX_SOCKET
         case AF_UNIX:
+        {
+            size_t pathlen = 0;
             // this strncpy call originally could piss off an address
             // sanitizer; we supplied the size of the dest buf as a limiter,
             // but optimized versions of strncpy could read past the end of
@@ -3467,6 +3456,7 @@ static inline void get_conn_text(const conn *c, const int af,
                     pathlen);
             addr_text[pathlen] = '\0';
             protoname = "unix";
+        }
             break;
 #endif /* #ifndef DISABLE_UNIX_SOCKET */
     }
@@ -7953,6 +7943,8 @@ static int server_socket_unix(const char *path, int access_mask) {
 
     return 0;
 }
+#else
+#define server_socket_unix(path, access_mask)   -1
 #endif /* #ifndef DISABLE_UNIX_SOCKET */
 
 /*
@@ -9041,15 +9033,11 @@ int main (int argc, char **argv) {
     setbuf(stderr, NULL);
 
     char *shortopts =
-#ifndef DISABLE_UNIX_SOCKET
           "a:"  /* access mask for unix socket */
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
-          "A"  /* enable admin shutdown command */
+          "A"   /* enable admin shutdown command */
           "Z"   /* enable SSL */
           "p:"  /* TCP port number to listen on */
-#ifndef DISABLE_UNIX_SOCKET
           "s:"  /* unix socket path to listen on */
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
           "U:"  /* UDP port number to listen on */
           "m:"  /* max memory to use for items in megabytes */
           "M"   /* return error on memory exhausted */
@@ -9088,15 +9076,11 @@ int main (int argc, char **argv) {
     /* process arguments */
 #ifdef HAVE_GETOPT_LONG
     const struct option longopts[] = {
-#ifndef DISABLE_UNIX_SOCKET
         {"unix-mask", required_argument, 0, 'a'},
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
         {"enable-shutdown", no_argument, 0, 'A'},
         {"enable-ssl", no_argument, 0, 'Z'},
         {"port", required_argument, 0, 'p'},
-#ifndef DISABLE_UNIX_SOCKET
         {"unix-socket", required_argument, 0, 's'},
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
         {"udp-port", required_argument, 0, 'U'},
         {"memory-limit", required_argument, 0, 'm'},
         {"disable-evictions", no_argument, 0, 'M'},
@@ -9155,12 +9139,15 @@ int main (int argc, char **argv) {
             exit(EX_USAGE);
 #endif
             break;
-#ifndef DISABLE_UNIX_SOCKET
         case 'a':
+#ifndef DISABLE_UNIX_SOCKET
             /* access for unix domain socket, as octal mask (like chmod)*/
             settings.access= strtol(optarg,NULL,8);
-            break;
+#else
+            fprintf(stderr, "This server is not built with unix socket support.\n");
+            exit(EX_USAGE);
 #endif /* #ifndef DISABLE_UNIX_SOCKET */
+            break;
         case 'U':
             settings.udpport = atoi(optarg);
             udp_specified = true;
@@ -9169,11 +9156,14 @@ int main (int argc, char **argv) {
             settings.port = atoi(optarg);
             tcp_specified = true;
             break;
-#ifndef DISABLE_UNIX_SOCKET
         case 's':
+#ifndef DISABLE_UNIX_SOCKET
             settings.socketpath = optarg;
-            break;
+#else
+            fprintf(stderr, "This server is not built with unix socket support.\n");
+            exit(EX_USAGE);
 #endif /* #ifndef DISABLE_UNIX_SOCKET */
+            break;
         case 'm':
             settings.maxbytes = ((size_t)atoi(optarg)) * 1024 * 1024;
             break;
@@ -10355,7 +10345,6 @@ int main (int argc, char **argv) {
 #endif
     clock_handler(0, 0, 0);
 
-#ifndef DISABLE_UNIX_SOCKET
     /* create unix mode sockets after dropping privileges */
     if (settings.socketpath != NULL) {
         errno = 0;
@@ -10366,9 +10355,7 @@ int main (int argc, char **argv) {
     }
 
     /* create the listening socket, bind it, and init */
-    if (settings.socketpath == NULL)
-#endif /* #ifndef DISABLE_UNIX_SOCKET */
-    {
+    if (settings.socketpath == NULL) {
         const char *portnumber_filename = getenv("MEMCACHED_PORT_FILENAME");
         char *temp_portnumber_filename = NULL;
         size_t len;
