@@ -788,9 +788,9 @@ then
 elif test "$GCC" = "yes"
 then
   GCC_VERSION=`$CC -dumpversion`
-  CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls"
+  CFLAGS="$CFLAGS -Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls"
   if test "x$host_os" != "xmingw32"; then
-    CFLAGS="$CFLAGS -Werror -pedantic"
+    CFLAGS="$CFLAGS -pedantic"
   else
     LIBS="$LIBS -Wl,-Bdynamic -lws2_32"
   fi
