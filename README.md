@@ -38,7 +38,7 @@
 
 ## Environment
 
-At least **Windows 7**
+Supported OS: At least **Windows Vista/Windows Server 2008**
 
 ## Running
 
