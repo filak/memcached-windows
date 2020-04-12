@@ -252,7 +252,11 @@ void *extstore_init(struct extstore_conf_file *fh, struct extstore_conf *cf,
     e->page_size = cf->page_size;
     uint64_t temp_page_count = 0;
     for (f = fh; f != NULL; f = f->next) {
-        f->fd = open(f->file, O_RDWR | O_CREAT | O_TRUNC, 0644);
+        f->fd = open(f->file, O_RDWR | O_CREAT | O_TRUNC
+#ifdef _WIN32
+                    | O_BINARY /* MS CRT requires this for binary otherwise succeeding (e.g. lseek) calls will fail */
+#endif /* #ifdef _WIN32 */
+        , 0644);
         if (f->fd < 0) {
             *res = EXTSTORE_INIT_OPEN_FAIL;
 #ifdef EXTSTORE_DEBUG

@@ -304,7 +304,11 @@ bool restart_mmap_open(const size_t limit, const char *file, void **mem_base) {
 
     long pagesize = _find_pagesize();
     memory_file = strdup(file);
-    mmap_fd = open(file, O_RDWR|O_CREAT, S_IRWXU);
+    mmap_fd = open(file, O_RDWR|O_CREAT
+#ifdef _WIN32
+                    | O_BINARY /* MS CRT requires this for binary otherwise succeeding (e.g. lseek) calls will fail */
+#endif /* #ifdef _WIN32 */
+                    , S_IRWXU);
     if (mmap_fd == -1) {
         perror("failed to open file for mmap");
         abort();
