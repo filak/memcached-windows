@@ -31,14 +31,11 @@
 			<Add option="-Werror -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls" />
 			<Add option="-DHAVE_CONFIG_H" />
 			<Add option="-D_POSIX" />
-			<Add option="-D_GNU_SOURCE" />
-			<Add option="-D__USE_MINGW_ANSI_STDIO" />
 			<Add option="-D_WIN32_WINNT=0x0601" />
 			<Add option="-DWIN32_LEAN_AND_MEAN" />
 			<Add option="-DTLS" />
 			<Add option="-DEXTSTORE" />
 			<Add option="-DDISABLE_UNIX_SOCKET" />
-			<Add option="-DDISABLE_SIGIGNORE" />
 			<Add option="-DDISABLE_RUNAS_USER" />
 			<Add option="-DWINDOWS_ONLY_SIGNALS" />
 			<Add option="-DDISABLE_RLIMIT_NOFILE" />
