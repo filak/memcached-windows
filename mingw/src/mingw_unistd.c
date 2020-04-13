@@ -83,7 +83,8 @@ int daemonize_cmd(char *argv[], const char *env_name) {
     if(env_value == NULL) {
         pid_t pid;
 
-        SetEnvironmentVariable(env_name, "ON");
+        /* Set the env name */
+        SetEnvironmentVariable(env_name, "1");
 
         rc = run_cmd_background(argv, &pid);
 
@@ -94,6 +95,9 @@ int daemonize_cmd(char *argv[], const char *env_name) {
     }
     /* The current process is the child */
     else {
+        /* Unset the env name */
+        SetEnvironmentVariable(env_name, NULL);
+
         rc = 0;
     }
 
