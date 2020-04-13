@@ -1,6 +1,6 @@
 #!/bin/sh -x
 
-export MEMCACHED_VER_='1.6.3'
+export MEMCACHED_VER_='1.6.4'
 export MC_CRUSHER_VER_='master'
 export LIBEVENT_VER_='2.1.11-stable'
 export LIBEVENT_HASH=a65bac6202ea8c5609fd5c7e480e6d25de467ea1917c08290c521752f147283d

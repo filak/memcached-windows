@@ -57,9 +57,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../cache.h" />
-		<Unit filename="../hash.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../hash.h" />
 		<Unit filename="../jenkins_hash.c">
 			<Option compilerVar="CC" />

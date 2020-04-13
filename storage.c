@@ -440,7 +440,7 @@ static void *storage_compact_thread(void *arg) {
     uint32_t page_id = 0;
     bool drop_unread = false;
     char *readback_buf = NULL;
-    struct storage_compact_wrap wrap = {0};
+    struct storage_compact_wrap wrap;
 
     logger *l = logger_create();
     if (l == NULL) {
@@ -458,6 +458,7 @@ static void *storage_compact_thread(void *arg) {
     wrap.done = false;
     wrap.submitted = false;
     wrap.io.data = &wrap;
+    wrap.io.iov = NULL;
     wrap.io.buf = (void *)readback_buf;
 
     wrap.io.len = settings.ext_wbuf_size;

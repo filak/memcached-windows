@@ -7,7 +7,7 @@ endif
 
 BUILT_SOURCES=
 
-testapp_SOURCES = testapp.c util.c util.h stats_prefix.c stats_prefix.h jenkins_hash.c murmur3_hash.c hash.c hash.h cache.c
+testapp_SOURCES = testapp.c util.c util.h stats_prefix.c stats_prefix.h jenkins_hash.c murmur3_hash.c hash.h cache.c
 
 if !BUILD_MINGW
 timedrun_SOURCES = timedrun.c

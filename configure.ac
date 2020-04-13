@@ -110,6 +110,9 @@ AC_ARG_ENABLE(asan,
 AC_ARG_ENABLE(static,
   [AS_HELP_STRING([--enable-static], [Compile a statically linked binary])])
 
+AC_ARG_ENABLE(unix_socket,
+  [AS_HELP_STRING([--disable-unix-socket], [Disable unix domain socket])])
+
 dnl **********************************************************************
 dnl DETECT_SASL_CB_GETCONF
 dnl
@@ -161,10 +164,15 @@ if test "x$enable_sasl" = "xyes"; then
   AC_C_DETECT_SASL_CB_GETCONF
   AC_C_DETECT_SASL_CB_GETCONFPATH
   AC_DEFINE([ENABLE_SASL],1,[Set to nonzero if you want to include SASL])
-  AC_SEARCH_LIBS([sasl_server_init], [sasl2 sasl], [],
-    [
-      AC_MSG_ERROR([Failed to locate the library containing sasl_server_init])
-    ])
+  AC_TRY_COMPILE([
+     #ifdef HAVE_SASL_SASL_H
+     #include <sasl/sasl.h>
+     #endif
+  ],[
+    sasl_server_init(NULL, "test");
+  ],[ENABLE_SASL=1
+  ],[ENABLE_SASL=0
+  ])
 
   AS_IF([test "x$enable_sasl_pwdb" = "xyes"],
         [AC_DEFINE([ENABLE_SASL_PWDB], 1,
@@ -213,6 +221,10 @@ if test "x$enable_static" = "xyes"; then
     AC_DEFINE([STATIC],1,[Set to nonzero if you want to compile a statically linked binary])
 fi
 
+if test "x$enable_unix_socket" = "xno"; then
+    AC_DEFINE([DISABLE_UNIX_SOCKET],1,[Set to nonzero if you want to disable unix domain socket])
+fi
+
 AM_CONDITIONAL([BUILD_DTRACE],[test "$build_dtrace" = "yes"])
 AM_CONDITIONAL([DTRACE_INSTRUMENT_OBJ],[test "$dtrace_instrument_obj" = "yes"])
 AM_CONDITIONAL([ENABLE_SASL],[test "$enable_sasl" = "yes"])
@@ -221,6 +233,7 @@ AM_CONDITIONAL([ENABLE_ARM_CRC32],[test "$enable_arm_crc32" = "yes"])
 AM_CONDITIONAL([ENABLE_TLS],[test "$enable_tls" = "yes"])
 AM_CONDITIONAL([ENABLE_ASAN],[test "$enable_asan" = "yes"])
 AM_CONDITIONAL([ENABLE_STATIC],[test "$enable_static" = "yes"])
+AM_CONDITIONAL([DISABLE_UNIX_SOCKET],[test "$enable_unix_socket" = "no"])
 
 
 AC_SUBST(DTRACE)
@@ -638,6 +651,8 @@ AC_CHECK_FUNCS(sysconf)
 AC_CHECK_FUNCS(memcntl)
 AC_CHECK_FUNCS(sigignore)
 AC_CHECK_FUNCS(clock_gettime)
+AC_CHECK_FUNCS(preadv)
+AC_CHECK_FUNCS(pread)
 AC_CHECK_FUNCS([accept4], [AC_DEFINE(HAVE_ACCEPT4, 1, [Define to 1 if support accept4])])
 AC_CHECK_FUNCS([getopt_long], [AC_DEFINE(HAVE_GETOPT_LONG, 1, [Define to 1 if support getopt_long])])
 
