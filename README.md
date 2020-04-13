@@ -8,31 +8,20 @@
 
 **memcached-windows** will be regularly merged, built, and tested with upstream/official [memcached](https://memcached.org/)'s latest releases. See [wiki](https://github.com/jefyt/memcached-windows/wiki) for more info.
 
-## Bintray binary package downloads (win32 and win64)
-
+## Binary package downloads (win32 and win64)
 <table>
     <tr>
-        <th>Package</th>
-        <th>Link</th>
-    </tr>
-    <tr>
-        <td>memcached</td>
+        <td>Bintray</td>
         <td><a href='https://bintray.com/jefty/generic/memcached-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/memcached-windows/images/download.svg'></a>
         </td>
     </tr>
     <tr>
-        <td>libevent (for build only)</td>
-        <td><a href='https://bintray.com/jefty/generic/libevent-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/libevent-windows/images/download.svg'></a></td>
-    </tr>
-    <tr>
-        <td>boringssl (for build only)</td>
-        <td><a href='https://bintray.com/jefty/generic/boringssl-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/boringssl-windows/images/download.svg'></a></td>
+        <td>AppVeyor CI</td>
+        <td><a href='https://ci.appveyor.com/project/jefty/memcached-windows/build/artifacts'>Artifacts</a>
+        </td>
     </tr>
 </table>
 
-## CI build and test logs
-
-* https://ci.appveyor.com/project/jefty/memcached-windows (Source/Uploader of [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion) binaries)
 * CI outputs and saves the final archives' hashes and can be compared with [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion)'s published hashes. This is one way to confirm that the release came from the CI build.
 * Aside from the hashes, [bintray](https://bintray.com/jefty/generic/memcached-windows/_latestVersion) binaries are also GPG-signed. Verify with [public key](https://bintray.com/user/downloadSubjectPublicKey?username=jefty).
 

@@ -62,6 +62,36 @@ run_crusher_test() {
   cd ..
 }
 
+alias curl='curl -fsSR --connect-timeout 15 -m 20 --retry 3'
+alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
+
+gpg_recv_key() {
+  # https://keys.openpgp.org/about/api
+  req="pks/lookup?op=get&options=mr&exact=on&search=0x$1"
+# curl "https://keys.openpgp.org/${req}"     | gpg --import --status-fd 1 || \
+  curl "https://pgpkeys.eu/${req}"           | gpg --import --status-fd 1 || \
+  curl "https://keyserver.ubuntu.com/${req}" | gpg --import --status-fd 1
+}
+
+# MinGW-w64 binaries from https://bintray.com/vszakats/generic/openssl are
+# recommended by OpenSSL (see https://wiki.openssl.org/index.php/Binaries)
+dl_openssl_bin() {
+  OPENSSL_ARCHIVE_NAME="openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
+  OPENSSL_ARCHIVE_FILE="${OPENSSL_ARCHIVE_NAME}.tar.xz"
+  OPENSSL_ARCHIVE_SIG="${OPENSSL_ARCHIVE_FILE}.asc"
+  # Download tarball
+  curl -o "${OPENSSL_ARCHIVE_FILE}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_FILE}" || exit 1
+  # Download the signature
+  curl -o "${OPENSSL_ARCHIVE_SIG}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_SIG}" || exit 1
+  # Verify with Bintray key
+  GPG_PK="379CE192D401AB61"
+  gpg_recv_key ${GPG_PK}
+  gpg --verify-options show-primary-uid-only --verify "${OPENSSL_ARCHIVE_SIG}" "${OPENSSL_ARCHIVE_FILE}" || exit 1
+  # Extract tarball
+  rm -rf "${OPENSSL_ARCHIVE_NAME}"
+  tar -xvf "${OPENSSL_ARCHIVE_FILE}" >/dev/null 2>&1 || exit 1
+}
+
 (
   rm -rf "${_NAM}"
   mkdir "${_NAM}"
@@ -90,6 +120,14 @@ run_crusher_test() {
   find . -name '*.Plo' -type f -delete
   find . -name '*.pc'  -type f -delete
 
+  if [ -n "${TLS_BORINGSSL}" ]; then
+    export ac_cv_libssl_dir="$(realpath "$(dirname $0)/..")/boringssl/pkg/usr/local"
+  else
+    # Download the pre-built OpenSSL binaries
+    dl_openssl_bin
+    export ac_cv_libssl_dir="${PWD}/${OPENSSL_ARCHIVE_NAME}"
+  fi
+
   options=''
   options="${options} --host=${_TRIPLET}"
   options="${options} --enable-extstore"
@@ -101,7 +139,6 @@ run_crusher_test() {
   options="${options} --disable-docs"
   export ac_cv_c_alignment=none
   export ac_cv_libevent_dir="$(realpath "$(dirname $0)/..")/libevent/pkg/usr/local"
-  export ac_cv_libssl_dir="$(realpath "$(dirname $0)/..")/boringssl/pkg/usr/local"
 
   MEMCACHED_SRCDIR="$(realpath ../../../)"
   MEMCACHED_CURDIR="${PWD}"
@@ -140,11 +177,10 @@ run_crusher_test() {
   "${_CCPREFIX}objdump" -x ${_pkg}/bin/*.exe | grep -E -i "(file format|dll name)"
 
   make test
-  if [ -n "${SSL_TEST}" ]; then
-    make test_basic_tls
-  fi
-  if [ -n "${FULL_SSL_TEST}" ]; then
+  if [ -n "${TLS_TEST_FULL}" ]; then
     make test_tls
+  elif [ -n "${TLS_TEST}" ]; then
+    make test_basic_tls
   fi
 
   if [ -n "${CRUSHER_TEST}" ]; then
