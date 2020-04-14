@@ -101,6 +101,11 @@ coverity_scan() {
 
   export PATH=$PATH:${COVERITY_PATH}
   cov-configure --template --compiler ${_TRIPLET}-gcc --comptype gcc
+
+  # Clean the build
+  make clean
+
+  rm -rf "${COVERITY_DIR}"
   cov-build --dir "${COVERITY_DIR}" make
 
   # Create the coverity tarball
