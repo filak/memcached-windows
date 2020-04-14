@@ -80,6 +80,14 @@ if [ -n "${CRUSHER_TEST}" ]; then
   curl -o mc-crusher-${MC_CRUSHER_VER_}.zip -L --proto-redir =https "https://github.com/memcached/mc-crusher/archive/${MC_CRUSHER_VER_}.zip" || exit 1
 fi
 
+# Download Coverity Scan Self-Build Tool
+if [ -n "${COVERITY_SCAN}" ]; then
+  wget https://scan.coverity.com/download/linux64 --post-data "token=${COVERITY_TOKEN}&project=${COVERITY_PROJECT}" -O coverity_tool.tgz
+  tar -xvf coverity_tool.tgz >/dev/null 2>&1 || exit 1
+  rm coverity_tool.tgz
+  rm -f -r cov-analysis && mv cov-analysis-* cov-analysis
+fi
+
 # osslsigncode
 # NOTE: "https://github.com/mtrojnar/osslsigncode/archive/${OSSLSIGNCODE_VER_}.tar.gz"
 curl -o pack.bin -L --proto-redir =https "https://deb.debian.org/debian/pool/main/o/osslsigncode/osslsigncode_${OSSLSIGNCODE_VER_}.orig.tar.gz" || exit 1

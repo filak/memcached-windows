@@ -92,6 +92,31 @@ dl_openssl_bin() {
   tar -xvf "${OPENSSL_ARCHIVE_FILE}" >/dev/null 2>&1 || exit 1
 }
 
+coverity_scan() {
+  COVERITY_DIR="cov-int"
+  COVERITY_TGZ="${COVERITY_DIR}.tar.gz"
+  CUR_DATE="$(date +%Y%m%d%H%M)"
+  COVERITY_VER="${MEMCACHED_VER_}_${CUR_DATE}_win${_cpu}-mingw"
+  COVERITY_PATH="$(realpath "$(dirname $0)/..")/cov-analysis/bin"
+
+  export PATH=$PATH:${COVERITY_PATH}
+  cov-configure --template --compiler ${_TRIPLET}-gcc --comptype gcc
+  cov-build --dir "${COVERITY_DIR}" make
+
+  # Create the coverity tarball
+  tar -czf "${COVERITY_TGZ}" "${COVERITY_DIR}"
+
+  curl --form token="${COVERITY_TOKEN}" \
+    --form email="${COVERITY_MAIL}" \
+    --form file=@"${COVERITY_TGZ}" \
+    --form version="${COVERITY_VER}" \
+    --form description="${COVERITY_VER}" \
+    https://scan.coverity.com/builds?project="${COVERITY_PROJECT}"
+
+  # Clean the build
+  make clean
+}
+
 (
   rm -rf "${_NAM}"
   mkdir "${_NAM}"
@@ -149,6 +174,12 @@ dl_openssl_bin() {
   echo "m4_define([VERSION_NUMBER], [${_VER}])" > version.m4
   cd "${MEMCACHED_CURDIR}"
   "${MEMCACHED_SRCDIR}/configure" ${options}
+
+  # Build for coverity before actual build
+  if [ -n "${COVERITY_SCAN}" ]; then
+    coverity_scan
+  fi
+
   make -j 2
   _pkg='pkg/usr/local'
   mkdir -p "${_pkg}/bin"
