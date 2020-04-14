@@ -29,6 +29,8 @@ static pthread_mutex_t          conns_list_lock = PTHREAD_MUTEX_INITIALIZER;
 int conn_list_init(int conns_max) {
     int rc = 0;
 
+    CONN_LIST_LOCK();
+
     CONN_LIST_PRINTF("conns_max: %d {\n", conns_max);
 
     f_conn_list_max = conns_max;
@@ -37,6 +39,8 @@ int conn_list_init(int conns_max) {
     f_conn_list_alloc_count = 0;
 
     CONN_LIST_PRINTF("conns_max: %d } %d\n", conns_max, rc);
+
+    CONN_LIST_UNLOCK();
 
     return rc;
 }
