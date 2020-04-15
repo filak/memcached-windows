@@ -1,10 +1,10 @@
 #!/bin/sh -x
 
 export MEMCACHED_VER_='1.6.5'
+export MEMCACHED_DATE_VER_='' # Dynamically resolved based on MEMCACHED_VER_
 export MC_CRUSHER_VER_='master'
-export LIBEVENT_VER_='2.1.11-stable'
-export LIBEVENT_HASH=a65bac6202ea8c5609fd5c7e480e6d25de467ea1917c08290c521752f147283d
-export OPENSSL_VER_='1.1.1f'
+export LIBEVENT_VER_='' # Dynamically resolved based on latest release
+export OPENSSL_VER_='' # Dynamically resolved based on latest release
 export OSSLSIGNCODE_VER_='1.7.1'
 export OSSLSIGNCODE_HASH=f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9
 
@@ -48,12 +48,18 @@ else
 fi
 
 # libevent
+LIBEVENT_LATEST_URL=$(curl -Ls -o /dev/null -w %{url_effective} https://github.com/libevent/libevent/releases/latest)
+LIBEVENT_VER_=$(basename "${LIBEVENT_LATEST_URL}" | sed -e "s/^release-//")
 curl -o pack.bin -L --proto-redir =https "https://github.com/libevent/libevent/releases/download/release-${LIBEVENT_VER_}/libevent-${LIBEVENT_VER_}.tar.gz" || exit 1
 openssl dgst -sha256 pack.bin | grep -q "${LIBEVENT_HASH}" || exit 1
 tar -xvf pack.bin >/dev/null 2>&1 || exit 1
 rm pack.bin
 rm -f -r libevent && mv libevent-* libevent
 [ -f "libevent${_patsuf}.patch" ] && dos2unix < "libevent${_patsuf}.patch" | patch --batch -N -p1 -d libevent
+
+# OpenSSL
+OPENSSL_LATEST_URL=$(curl -Ls -o /dev/null -w %{url_effective} https://bintray.com/vszakats/generic/openssl/_latestVersion)
+OPENSSL_VER_=$(basename "${OPENSSL_LATEST_URL}")
 
 # BoringSSL version to be used is the %Y%m%d%H%M date format of the
 # https://github.com/google/boringssl/tree/chromium-stable's latest commit

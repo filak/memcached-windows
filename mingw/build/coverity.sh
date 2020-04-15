@@ -6,8 +6,8 @@
 #   cov-analysis/bin must be in PATH
 #   current dir must be ready for make or already configured
 #   COMPILER_TYPE defaults to gcc but not the COMPILER_CMD which must be passed
-#   COVERITY_TOKEN env must be correctly
-#   COVERITY_PROJECT env must be correctly
+#   COVERITY_TOKEN env must be set correctly
+#   COVERITY_PROJECT env must be set correctly
 #   SRC_VERSION defaults to current date in %Y-%m-%d_%H.%M format unless set
 #   SRC_DESC defaults to current date in %Y-%m-%d_%H.%M format unless set
 
