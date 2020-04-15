@@ -12,6 +12,13 @@
 #endif
 
 typedef unsigned short in_port_t;
+typedef unsigned short sa_family_t;
+
+/* Supposedly in afunix.h but currently MinGW does not support */
+struct sockaddr_un {
+    sa_family_t sun_family;               /* AF_UNIX */
+    char        sun_path[108];            /* Pathname */
+};
 
 /* Structure describing messages sent by
    `sendmsg' and received by `recvmsg'.  */

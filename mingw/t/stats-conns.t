@@ -10,7 +10,7 @@ use MemcachedTest;
 if (supports_unix_socket()) {
     plan tests => 12;
 
-    my $filename = "/tmp/memcachetest$$";
+    my $filename = "tmp/memcachetest$$";
 
     my $server = new_memcached("-s $filename");
     my $sock = $server->sock;

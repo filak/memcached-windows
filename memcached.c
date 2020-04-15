@@ -7899,7 +7899,6 @@ static int server_socket_unix(const char *path, int access_mask) {
     int sfd;
     struct linger ling = {0, 0};
     struct sockaddr_un addr;
-    struct stat tstat;
     int flags =1;
     int old_umask;
 
@@ -7914,12 +7913,23 @@ static int server_socket_unix(const char *path, int access_mask) {
     /*
      * Clean up a previous socket file if we left it around
      */
+#ifndef _WIN32
+    struct stat tstat;
     if (lstat(path, &tstat) == 0) {
         if (S_ISSOCK(tstat.st_mode))
             unlink(path);
     }
+#else
+    /* Windows implements unix socket file as NTFS reparse point. It looks
+     * like a regular file for users. Delete file regardless to avoid
+     * WSAEADDRINUSE error. */
+    DeleteFile(path);
+#endif /* #ifndef _WIN32 */
 
+    /* Setting SO_REUSEADDR in Windows' unix socket causes the bind to fail with WSAEOPNOTSUPP */
+#ifndef _WIN32
     setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, (void *)&flags, sizeof(flags));
+#endif /* #ifndef _WIN32 */
     setsockopt(sfd, SOL_SOCKET, SO_KEEPALIVE, (void *)&flags, sizeof(flags));
     setsockopt(sfd, SOL_SOCKET, SO_LINGER, (void *)&ling, sizeof(ling));
 

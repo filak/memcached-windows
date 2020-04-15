@@ -27,7 +27,8 @@
 
 ## Environment
 
-Supported OS: At least **Windows Vista/Windows Server 2008**
+Minimum Requirement: **Windows Vista/Windows Server 2008**
+* **NOTE**: **-s/unix-socket** requires at least [Windows 10 version 1803](https://docs.microsoft.com/en-us/windows/whats-new/whats-new-windows-10-version-1803) to work. Run _**sc query afunix**_ to check if OS is supported. Socket creation error will occur for unsupported OS.
 
 ## Running
 
@@ -38,7 +39,6 @@ Supported OS: At least **Windows Vista/Windows Server 2008**
 
 * **sasl** (-Y/--auth-file with TLS/SSL enabled is a good alternative)
 * **-u/user** (Better use Windows __*runas*__ command, Windows **explorer**'s __*Run as different user*__ context menu, or other Windows built-in tools)
-* **-s/unix-socket** ([Mingw-w64](http://mingw-w64.org/) does not currently support **AF_UNIX** even though it is already supported in Windows since **Windows 10 build 1803**. Supporting this natively in Windows 10 **MUST** also need native (not **Cygwin**-emulated) **AF_UNIX**-aware memcached clients. Just use localhost TCP instead!
 * **-r/coredumps** ([Mingw-w64](http://mingw-w64.org/) currently doesn't support coredump but check [Runtime and Crash Analysis](https://github.com/jefyt/memcached-windows/wiki/Runtime-and-Crash-Analysis) wiki to know how to achieve same purpose using native Windows crash dumps.)
 * **-k/lock-memory** (Windows does not currently support locking of all paged memory)
 * **seccomp**

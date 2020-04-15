@@ -216,7 +216,10 @@ sub supports_tls {
 
 sub supports_unix_socket {
     my $output = print_help();
-    return 1 if $output =~ /unix-socket/i;
+    # wine does not currently support Windows' unix socket.
+    if (!$ENV{WINE_TEST}) {
+        return 1 if $output =~ /unix-socket/i;
+    }
     return 0;
 }
 
@@ -326,7 +329,7 @@ sub new_memcached {
         }
     } elsif ($args !~ /-s (\S+)/) {
         my $num = @unixsockets;
-        my $file = "/tmp/memcachetest.$$.$num";
+        my $file = "tmp/memcachetest.$$.$num";
         $args .= " -s $file";
         push(@unixsockets, $file);
     }
