@@ -7170,7 +7170,12 @@ static void drive_machine(conn *c) {
                 break;
             }
             if (!use_accept4) {
+#ifndef _WIN32
                 if (fcntl(sfd, F_SETFL, fcntl(sfd, F_GETFL) | O_NONBLOCK) < 0) {
+#else
+                u_long flags = 1;
+                if (ioctlsocket(sfd, FIONBIO, &flags) < 0) {
+#endif /* #ifndef _WIN32 */
                     perror("setting O_NONBLOCK");
                     sock_close(sfd);
                     break;
@@ -7565,14 +7570,18 @@ void event_handler(const evutil_socket_t fd, const short which, void *arg) {
 
 static int new_socket(struct addrinfo *ai) {
     int sfd;
-    int flags;
+    int flags = 1;
 
     if ((sfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
         return -1;
     }
 
+#ifndef _WIN32
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 ||
         fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+#else
+    if (ioctlsocket(sfd, FIONBIO, (u_long *)&flags) < 0) {
+#endif /* #ifndef _WIN32 */
         perror("setting O_NONBLOCK");
         sock_close(sfd);
         return -1;
@@ -7879,15 +7888,19 @@ static int server_sockets(int port, enum network_transport transport,
 #ifndef DISABLE_UNIX_SOCKET
 static int new_socket_unix(void) {
     int sfd;
-    int flags;
+    int flags = 1;
 
     if ((sfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
         perror("socket()");
         return -1;
     }
 
+#ifndef _WIN32
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0 ||
         fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+#else
+    if (ioctlsocket(sfd, FIONBIO, (u_long *)&flags) < 0) {
+#endif /* #ifndef _WIN32 */
         perror("setting O_NONBLOCK");
         sock_close(sfd);
         return -1;

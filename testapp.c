@@ -748,8 +748,13 @@ static struct conn *connect_server(const char *hostname, in_port_t port,
              sock_close(sock);
              sock = -1;
           } else if (nonblock) {
+#ifndef _WIN32
               int flags = fcntl(sock, F_GETFL, 0);
               if (flags < 0 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
+#else
+              u_long flags = 1;
+              if (ioctlsocket(sock, FIONBIO, &flags) < 0) {
+#endif /* #ifndef _WIN32 */
                   fprintf(stderr, "Failed to enable nonblocking mode: %s\n",
                           strerror(errno));
                   sock_close(sock);

@@ -334,38 +334,3 @@ int WinSSL_read(SSL *ssl, void *buf, int num) {
 }
 #endif
 
-int fcntl(int fd, int cmd, ... /* arg */ ) {
-    int rc = -1;
-    va_list ap;
-    int param;
-
-    SOCKET_API_PRINTF("%d, %d {\n", fd, cmd);
-
-    va_start(ap, cmd);
-
-    switch (cmd) {
-    case F_SETFL:
-        param = va_arg(ap, int);
-        if(param & O_NONBLOCK) {
-            u_long flags = 1;
-            rc = ioctlsocket(fd, FIONBIO, &flags);
-        }
-        break;
-    case F_GETFL:
-        // Just return success
-        rc = 0;
-        break;
-    default:
-
-        break;
-    }
-
-    va_end(ap);
-
-    SOCKET_API_PRINTF("%d, %d } %d\n", fd, cmd, rc);
-
-    SOCKET_API_LOG_IF_ERROR(fd, rc);
-
-    return rc;
-}
-
