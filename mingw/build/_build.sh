@@ -159,10 +159,10 @@ build_single_target() {
 
   command -v "$(dirname "$0")/osslsigncode-determ" >/dev/null 2>&1 || unset CODESIGN_KEY
 
-  time ./libevent.sh    "${LIBEVENT_VER_}" "${_cpu}"
   if [ -n "${TLS_BORINGSSL}" ]; then
     time ./boringssl.sh   "${BORINGSSL_VER_}" "${_cpu}"
   fi
+  time ./libevent.sh    "${LIBEVENT_VER_}" "${_cpu}"
   time ./memcached.sh   "${MEMCACHED_VER_}" "${_cpu}"
 }
 

@@ -37,7 +37,16 @@ _cpu="$2"
   find . -name '*.pc'  -type f -delete
 
   export CFLAGS="-m${_cpu} -fno-ident -DNDEBUG -O2"
-  [ "${_cpu}" = '32' ] && CFLAGS="${_CFLAGS} -fno-asynchronous-unwind-tables"
+  [ "${_cpu}" = '32' ] && CFLAGS="${CFLAGS} -fno-asynchronous-unwind-tables"
+
+  # TLS
+  if [ -n "${TLS_BORINGSSL}" ]; then
+    OPENSSL_DIR="$(realpath "$(dirname $0)/..")/boringssl/pkg/usr/local"
+  else
+    OPENSSL_DIR="$(realpath "$(dirname $0)/..")/openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
+  fi
+  CFLAGS="${CFLAGS} -I${OPENSSL_DIR}/include"
+  export LDFLAGS="-L${OPENSSL_DIR}/lib -lssl -lcrypto"
 
   options=''
   options="${options} --host=${_TRIPLET}"
@@ -46,7 +55,6 @@ _cpu="$2"
   options="${options} --disable-debug-mode"
   options="${options} --disable-libevent-regress"
   options="${options} --disable-samples"
-  options="${options} --disable-openssl"
 
   ./configure ${options}
   make -j 2 install "DESTDIR=$(pwd)/pkg"

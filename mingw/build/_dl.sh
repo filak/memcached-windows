@@ -39,6 +39,14 @@ fi
 alias curl='curl -fsSR --connect-timeout 15 -m 20 --retry 3'
 alias wget='wget -nv --timeout=15 --tries=3 --https-only'
 
+gpg_recv_key() {
+  # https://keys.openpgp.org/about/api
+  req="pks/lookup?op=get&options=mr&exact=on&search=0x$1"
+# curl "https://keys.openpgp.org/${req}"     | gpg --import --status-fd 1 || \
+  curl "https://pgpkeys.eu/${req}"           | gpg --import --status-fd 1 || \
+  curl "https://keyserver.ubuntu.com/${req}" | gpg --import --status-fd 1
+}
+
 if [ "${_BRANCH#*dev*}" != "${_BRANCH}" ]; then
   _patsuf='.dev'
 elif [ "${_BRANCH#*master*}" = "${_BRANCH}" ]; then
@@ -57,9 +65,25 @@ rm pack.bin
 rm -f -r libevent && mv libevent-* libevent
 [ -f "libevent${_patsuf}.patch" ] && dos2unix < "libevent${_patsuf}.patch" | patch --batch -N -p1 -d libevent
 
-# OpenSSL
-OPENSSL_LATEST_URL=$(curl -Ls -o /dev/null -w %{url_effective} https://bintray.com/vszakats/generic/openssl/_latestVersion)
-OPENSSL_VER_=$(basename "${OPENSSL_LATEST_URL}")
+# MinGW-w64 binaries from https://bintray.com/vszakats/generic/openssl are
+# recommended by OpenSSL (see https://wiki.openssl.org/index.php/Binaries)
+dl_openssl_bin() {
+  OPENSSL_CPU=$1
+  OPENSSL_ARCHIVE_NAME="openssl-${OPENSSL_VER_}-win${OPENSSL_CPU}-mingw"
+  OPENSSL_ARCHIVE_FILE="${OPENSSL_ARCHIVE_NAME}.tar.xz"
+  OPENSSL_ARCHIVE_SIG="${OPENSSL_ARCHIVE_FILE}.asc"
+  # Download tarball
+  curl -o "${OPENSSL_ARCHIVE_FILE}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_FILE}" || exit 1
+  # Download the signature
+  curl -o "${OPENSSL_ARCHIVE_SIG}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_SIG}" || exit 1
+  # Verify with Bintray key
+  GPG_PK="379CE192D401AB61"
+  gpg_recv_key ${GPG_PK}
+  gpg --verify-options show-primary-uid-only --verify "${OPENSSL_ARCHIVE_SIG}" "${OPENSSL_ARCHIVE_FILE}" || exit 1
+  # Extract tarball
+  rm -rf "${OPENSSL_ARCHIVE_NAME}"
+  tar -xvf "${OPENSSL_ARCHIVE_FILE}" >/dev/null 2>&1 || exit 1
+}
 
 # BoringSSL version to be used is the %Y%m%d%H%M date format of the
 # https://github.com/google/boringssl/tree/chromium-stable's latest commit
@@ -70,6 +94,16 @@ if [ -n "${TLS_BORINGSSL}" ]; then
     cd boringssl
     export BORINGSSL_VER_="$(git log --date=format:'%Y%m%d%H%M' -1 | sed '3q;d' | awk -F ' ' '{print $2}')"
     cd ..
+else
+  # OpenSSL
+  OPENSSL_LATEST_URL=$(curl -Ls -o /dev/null -w %{url_effective} https://bintray.com/vszakats/generic/openssl/_latestVersion)
+  OPENSSL_VER_=$(basename "${OPENSSL_LATEST_URL}")
+  if [ -n "$CPU" ]; then
+    dl_openssl_bin "${CPU}"
+  else
+    dl_openssl_bin 64
+    dl_openssl_bin 32
+  fi
 fi
 
 # Official memcached to be used in timestamping since it has no Changelog that can be used as reference
