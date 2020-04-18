@@ -2,7 +2,6 @@ sudo: required
 dist: bionic
 language: cpp
 arch:
-    - amd64
     - arm64
 
 compiler:
