@@ -1,0 +1,65 @@
+name: GitHub CI
+
+on: [push, pull_request]
+
+jobs:
+  ubuntu-build-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install deps
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y libevent-dev libseccomp-dev git libsasl2-dev
+    - name: Build
+      run: |
+        gcc --version
+        ./autogen.sh
+        ./configure --enable-seccomp --enable-tls --enable-extstore --enable-sasl --enable-sasl-pwdb
+        make -j
+        rm -f t/whitespace.t
+    - name: Test
+      run: make test
+    - name: Test TLS
+      run: make test_tls
+
+  macos-build-test:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install deps
+      run: |
+        brew install automake
+        export OPENSSL_PREFIX=/usr/local/opt/openssl@1.1
+        export LD_LIBRARY_PATH="${OPENSSL_PREFIX}/lib"
+        cpan Net::SSLeay
+        cpan IO::Socket::SSL
+    - name: Build
+      run: |
+        clang --version
+        ./autogen.sh
+        export CC=clang
+        export ac_cv_libssl_dir=/usr/local/opt/openssl@1.1
+        ./configure --enable-tls --enable-extstore
+        make -j
+        rm -f t/whitespace.t
+    - name: Test
+      run: make test || true
+    - name: Test TLS
+      run: make test_tls || true
+
+  debian-build:
+    runs-on: ubuntu-latest
+    container: debian:testing
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install deps
+      run: |
+        apt-get update -y
+        apt-get install -y build-essential automake autoconf libevent-dev libseccomp-dev git libssl-dev libsasl2-dev
+    - name: Build
+      run: |
+        gcc --version
+        ./autogen.sh
+        ./configure --enable-seccomp --enable-tls --enable-extstore --enable-sasl --enable-sasl-pwdb
+        make -j
