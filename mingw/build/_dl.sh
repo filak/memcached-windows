@@ -128,6 +128,11 @@ if [ -n "${COVERITY_SCAN}" ]; then
   rm -f -r cov-analysis && mv cov-analysis-* cov-analysis
 fi
 
+# Download coverage uploader
+if [ -z "${CODECOV_DISABLE}" ]; then
+  curl -o codecov.sh -L --proto-redir =https "https://codecov.io/bash" || exit 1
+fi
+
 # osslsigncode
 # NOTE: "https://github.com/mtrojnar/osslsigncode/archive/${OSSLSIGNCODE_VER_}.tar.gz"
 curl -o pack.bin -L --proto-redir =https "https://deb.debian.org/debian/pool/main/o/osslsigncode/osslsigncode_${OSSLSIGNCODE_VER_}.orig.tar.gz" || exit 1

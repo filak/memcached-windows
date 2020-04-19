@@ -20,6 +20,7 @@ BEGIN {
     push(@exempted, glob("m4/*backport*m4"));
     push(@exempted, glob("*.orig"));
     push(@exempted, glob(".*.swp"));
+    push(@exempted, glob("*.exe"));
     push(@exempted, glob("mingw/**"));              # Exempt Code::Blocks project files
     push(@exempted, glob("mingw/bin/**/**"));       # Exempt Code::Blocks built files
     push(@exempted, glob("mingw/build/*.patch"));   # Exempt mingw/build patch files
