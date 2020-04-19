@@ -66,6 +66,8 @@ alias curl='curl -fsSR --connect-timeout 15 -m 20 --retry 3'
 alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
 
 (
+  BUILD_SCRIPT_DIR="${PWD}"
+
   rm -rf "${_NAM}"
   mkdir "${_NAM}"
   cd "${_NAM}" || exit
@@ -95,9 +97,9 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
 
   # TLS
   if [ -n "${TLS_BORINGSSL}" ]; then
-    OPENSSL_DIR="$(realpath "$(dirname $0)/..")/boringssl/pkg/usr/local"
+    OPENSSL_DIR="${BUILD_SCRIPT_DIR}/boringssl/pkg/usr/local"
   else
-    OPENSSL_DIR="$(realpath "$(dirname $0)/..")/openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
+    OPENSSL_DIR="${BUILD_SCRIPT_DIR}/openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
   fi
 
   options=''
@@ -108,28 +110,34 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
   options="${options} --disable-sasl"
   options="${options} --disable-sasl-pwdb"
   options="${options} --disable-docs"
+  if [ -z "${CODECOV_ENABLE}" ]; then
+    options="${options} --disable-coverage"
+  fi
   export ac_cv_c_alignment=none
-  export ac_cv_libevent_dir="$(realpath "$(dirname $0)/..")/libevent/pkg/usr/local"
+  export ac_cv_libevent_dir="${BUILD_SCRIPT_DIR}/libevent/pkg/usr/local"
   export ac_cv_libssl_dir="${OPENSSL_DIR}"
 
   MEMCACHED_SRCDIR="$(realpath ../../../)"
   MEMCACHED_CURDIR="${PWD}"
+  _pkg="${MEMCACHED_CURDIR}/pkg/usr/local"
+  readonly _ref="${MEMCACHED_CURDIR}/VERSION"
+
+  # Change build directory
   cd "${MEMCACHED_SRCDIR}"
   ./autogen.sh
+  make distclean || true
   # memcached's version is generated using git describe (see version.sh) and the
   # value is unknown/empty/error on some environment so just replace to make sure.
   echo "m4_define([VERSION_NUMBER], [${_VER}])" > version.m4
-  cd "${MEMCACHED_CURDIR}"
-  "${MEMCACHED_SRCDIR}/configure" ${options}
+  ./configure ${options}
 
   # Build for coverity before actual build
   if [ -n "${COVERITY_SCAN}" ]; then
-    export PATH=${PATH}:"$(realpath "$(dirname $0)/..")/cov-analysis/bin"
-    ../coverity.sh
+    export PATH=${PATH}:"${BUILD_SCRIPT_DIR}/cov-analysis/bin"
+    "${BUILD_SCRIPT_DIR}/coverity.sh"
   fi
 
   make -j 2
-  _pkg='pkg/usr/local'
   mkdir -p "${_pkg}/bin"
   mkdir -p "${_pkg}/include"
   cp -a *.exe "${_pkg}/bin"
@@ -140,13 +148,12 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
 
   # Make steps for determinism
 
-  readonly _ref='VERSION'
   echo "${_VER}" > "${_ref}"
   touch -c -t "${MEMCACHED_DATE_VER_}" "${_ref}"
 
-  ../_peclean.py "${_ref}" ${_pkg}/bin/*.exe
+  "${BUILD_SCRIPT_DIR}/_peclean.py" "${_ref}" ${_pkg}/bin/*.exe
 
-  ../_sign.sh "${_ref}" ${_pkg}/bin/*.exe
+  "${BUILD_SCRIPT_DIR}/_sign.sh" "${_ref}" ${_pkg}/bin/*.exe
 
   touch -c -r "${_ref}" ${_pkg}/bin/*.exe
   touch -c -r "${_ref}" ${_pkg}/include/*.h
@@ -158,18 +165,20 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
   make test
   if [ -n "${TLS_TEST_FULL}" ]; then
     make test_tls
-  elif [ -n "${TLS_TEST}" ]; then
+  elif [ -n "${TLS_TEST_BASIC}" ]; then
     make test_basic_tls
   fi
 
-  # Upload coverage by default
-  if [ -z "${CODECOV_DISABLE}" ]; then
-    curl -s https://codecov.io/bash | bash
+  if [ -n "${CODECOV_ENABLE}" ]; then
+    bash "${BUILD_SCRIPT_DIR}/codecov.sh" -x "${_CCPREFIX}gcov"
   fi
 
   if [ -n "${CRUSHER_TEST}" ]; then
     run_crusher_test > "${_pkg}/tests/mc-crusher.log" 2>&1
   fi
+
+  # Change to original dir
+  cd "${MEMCACHED_CURDIR}"
 
   # Create package
 
@@ -183,6 +192,6 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
 
   unix2dos -q -k "${_DST}"/*.txt
 
-  ../_pack.sh "${PWD}/${_ref}"
-  _NAM="${_NAM}-windows" ../_ul.sh
+  "${BUILD_SCRIPT_DIR}/_pack.sh" "${PWD}/${_ref}"
+  _NAM="${_NAM}-windows" "${BUILD_SCRIPT_DIR}/_ul.sh"
 )

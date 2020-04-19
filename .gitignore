@@ -45,3 +45,4 @@ doc/protocol-binary.txt
 /compile_commands.json
 mingw/*.layout
 mingw/*.depend
+*.dirstamp
