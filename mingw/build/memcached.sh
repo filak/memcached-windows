@@ -107,7 +107,6 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
   options="${options} --disable-seccomp"
   options="${options} --disable-sasl"
   options="${options} --disable-sasl-pwdb"
-  options="${options} --disable-coverage"
   options="${options} --disable-docs"
   export ac_cv_c_alignment=none
   export ac_cv_libevent_dir="$(realpath "$(dirname $0)/..")/libevent/pkg/usr/local"
@@ -161,6 +160,11 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
     make test_tls
   elif [ -n "${TLS_TEST}" ]; then
     make test_basic_tls
+  fi
+
+  # Upload coverage by default
+  if [ -z "${CODECOV_DISABLE}" ]; then
+    curl -s https://codecov.io/bash | bash
   fi
 
   if [ -n "${CRUSHER_TEST}" ]; then
