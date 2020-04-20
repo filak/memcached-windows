@@ -22,6 +22,26 @@ jobs:
     - name: Test TLS
       run: make test_tls
 
+  arm64-build-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build & Test
+      run: |
+        sudo apt-get update -y
+        QEMU_ARM64_CMD_FILE="./arm64_build_test.sh"
+        echo "apt-get update -y" > "${QEMU_ARM64_CMD_FILE}"
+        echo "apt-get install -y build-essential automake autoconf libevent-dev libseccomp-dev git tar libio-socket-ssl-perl libssl-dev" >> "${QEMU_ARM64_CMD_FILE}"
+        echo "gcc --version" >> "${QEMU_ARM64_CMD_FILE}"
+        echo "./autogen.sh" >> "${QEMU_ARM64_CMD_FILE}"
+        echo "./configure --enable-seccomp --enable-tls" >> "${QEMU_ARM64_CMD_FILE}"
+        echo "make -j" >> "${QEMU_ARM64_CMD_FILE}"
+        echo "make test" >> "${QEMU_ARM64_CMD_FILE}"
+        echo "make test_tls" >> "${QEMU_ARM64_CMD_FILE}"
+        chmod +x "${QEMU_ARM64_CMD_FILE}"
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+        docker run -v "$(pwd):$(pwd)" -w "$(pwd)" arm64v8/ubuntu sh -c "${QEMU_ARM64_CMD_FILE}"
+
   macos-build-test:
     runs-on: macos-latest
     steps:
