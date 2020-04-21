@@ -1,0 +1,14 @@
+{
+   "event_type":"memtier_benchmark",
+   "client_payload":{
+      "mc_port":"11211",
+      "mc_conn_limit":"1500",
+      "mc_extra_opts":"-v",
+      "mb_protocol":"memcache_text",
+      "mb_run_count":"3",
+      "mb_clients":"100",
+      "mb_threads":"10",
+      "mb_extra_opts":"--requests=20000 --randomize --random-data --distinct-client-seed",
+      "cygwin_cmd":"memcached-master\\cygwin\\x64\\memcached-tls"
+   }
+}

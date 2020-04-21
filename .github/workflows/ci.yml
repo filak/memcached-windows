@@ -3,7 +3,7 @@ name: GitHub CI
 on: [push, pull_request]
 
 jobs:
-  ubuntu-build-test:
+  ubuntu-build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -17,36 +17,22 @@ jobs:
         ./autogen.sh
         ./configure --enable-seccomp --enable-tls --enable-extstore --enable-sasl --enable-sasl-pwdb
         make -j
-        rm -f t/whitespace.t
-    - name: Test
-      run: make test
-    - name: Test TLS
-      run: make test_tls
 
-  macos-build-test:
+  macos-build:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
     - name: Install deps
       run: |
         brew install automake
-        export OPENSSL_PREFIX=/usr/local/opt/openssl@1.1
-        export LD_LIBRARY_PATH="${OPENSSL_PREFIX}/lib"
-        cpan Net::SSLeay
-        cpan IO::Socket::SSL
     - name: Build
       run: |
         clang --version
         ./autogen.sh
         export CC=clang
         export ac_cv_libssl_dir=/usr/local/opt/openssl@1.1
-        ./configure --enable-tls --enable-extstore
+        ./configure --enable-tls
         make -j
-        rm -f t/whitespace.t
-    - name: Test
-      run: make test || true
-    - name: Test TLS
-      run: make test_tls || true
 
   debian-build:
     runs-on: ubuntu-latest

@@ -1,0 +1,248 @@
+name: Benchmark
+
+on: repository_dispatch
+
+jobs:
+  mingw-benchmark:
+    runs-on: windows-latest
+    if: github.event.action == 'memtier_benchmark'
+    env:
+        MB_CMD: memtier_benchmark
+        NC_CMD: nmap\ncat
+        MB_RUN_COUNT: ${{ github.event.client_payload.mb_run_count }}
+        MB_CLIENTS: ${{ github.event.client_payload.mb_clients }}
+        MB_THREADS: ${{ github.event.client_payload.mb_threads }}
+        MB_PROTOCOL: ${{ github.event.client_payload.mb_protocol }}
+        MB_EXTRA_OPTS: ${{ github.event.client_payload.mb_extra_opts }}
+        MC_LOGS_DIR: memtier_benchmark_logs
+        MC_SERVER: 127.0.0.1
+        MC_PORT: ${{ github.event.client_payload.mc_port }}
+        MC_CONN_LIMIT: ${{ github.event.client_payload.mc_conn_limit }}
+        MC_EXTRA_OPTS: ${{ github.event.client_payload.mc_extra_opts }}
+        MINGW_CMD: memcached-mingw
+        MINGW_TCP_LOG: memtier_benchmark_logs\mingw_tcp.log
+        MINGW_TLS_LOG: memtier_benchmark_logs\mingw_tls.log
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download latest memtier_benchmark and memcached-mingw binaries
+        shell: cmd
+        run: |
+            @echo ON
+            set MC_BASE_URL=https://bintray.com/jefty/generic
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o UnxUtils.zip -L --proto-redir =https https://docs.google.com/uc?export=download^&id=1OBMV1eMC1dcR1DGAbkE0payROJP_TfEp
+            7z x UnxUtils.zip
+            set BASENAME_CMD=usr\local\wbin\basename
+            FOR /F "tokens=* USEBACKQ" %%F IN (`curl -fsSR --connect-timeout 15 -m 20 --retry 3 -Ls -o NUL: -w %%{url_effective} %MC_BASE_URL%/memcached-windows/_latestVersion`) DO (
+                SET MC_RELEASE_URL=%%F
+            )
+            FOR /F "tokens=* USEBACKQ" %%F IN (`%BASENAME_CMD% %MC_RELEASE_URL%`) DO (
+                SET MC_VERSION=%%F
+            )
+            set MC_ARCHIVE_NAME=memcached-%MC_VERSION%-win64-mingw
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o %MC_ARCHIVE_NAME%.zip -L --proto-redir =https %MC_BASE_URL%/download_file?file_path=%MC_ARCHIVE_NAME%.zip
+            7z x %MC_ARCHIVE_NAME%.zip
+            move %MC_ARCHIVE_NAME%\bin\memcached.exe %MINGW_CMD%.exe
+            set MB_BASE_URL=https://github.com/jefyt/memtier_benchmark-windows/releases
+            FOR /F "tokens=* USEBACKQ" %%F IN (`curl -fsSR --connect-timeout 15 -m 20 --retry 3 -Ls -o NUL: -w %%{url_effective} %MB_BASE_URL%/latest`) DO (
+                SET MB_RELEASE_URL=%%F
+            )
+            FOR /F "tokens=* USEBACKQ" %%F IN (`%BASENAME_CMD% %MB_RELEASE_URL%`) DO (
+                SET MB_VERSION=%%F
+            )
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o %MB_CMD%.exe -L --proto-redir =https %MB_BASE_URL%/download/%MB_VERSION%/memtier_benchmark-win64.exe
+            set NMAP_VERSION=7.80
+            set NMAP_ARCHIVE_NAME=nmap-%NMAP_VERSION%
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o %NMAP_ARCHIVE_NAME%.zip -L --proto-redir =https https://nmap.org/dist/%NMAP_ARCHIVE_NAME%-win32.zip
+            7z x %NMAP_ARCHIVE_NAME%.zip
+            move %NMAP_ARCHIVE_NAME% nmap
+            mkdir %MC_LOGS_DIR%
+      - name: Benchmark memcached-mingw (no TLS)
+        shell: cmd
+        run: |
+            @echo ON
+            set MC_CMD=%MINGW_CMD%
+            %MC_CMD% --version
+            %MC_CMD% -dA -p %MC_PORT% -c %MC_CONN_LIMIT% %MC_EXTRA_OPTS%
+            usr\local\wbin\sleep 5
+            echo stats settings | %NC_CMD% %MC_SERVER% %MC_PORT%
+            echo stats | %NC_CMD% %MC_SERVER% %MC_PORT%            
+            %MB_CMD% --out-file=%MINGW_TCP_LOG% --server=%MC_SERVER% --port=%MC_PORT% --protocol=%MB_PROTOCOL% --run-count=%MB_RUN_COUNT% --clients=%MB_CLIENTS% --threads=%MB_THREADS% %MB_EXTRA_OPTS%
+            echo stats | %NC_CMD% %MC_SERVER% %MC_PORT% | usr\local\wbin\tee --append %MINGW_TCP_LOG%
+            echo shutdown | %NC_CMD% %MC_SERVER% %MC_PORT%
+            usr\local\wbin\sleep 5
+      - name: Benchmark memcached-mingw (TLS)
+        shell: cmd
+        run: |
+            @echo ON
+            set MC_CMD=%MINGW_CMD%
+            %MC_CMD% --version
+            %MC_CMD% -dA -p %MC_PORT% -Z -o ssl_chain_cert=t/server_crt.pem -o ssl_key=t/server_key.pem -c %MC_CONN_LIMIT% %MC_EXTRA_OPTS%
+            usr\local\wbin\sleep 5
+            echo stats settings | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
+            echo stats | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%            
+            %MB_CMD% --tls --tls-skip-verify --out-file=%MINGW_TLS_LOG% --server=%MC_SERVER% --port=%MC_PORT% --protocol=%MB_PROTOCOL% --run-count=%MB_RUN_COUNT% --clients=%MB_CLIENTS% --threads=%MB_THREADS% %MB_EXTRA_OPTS%
+            echo stats | %NC_CMD% --ssl %MC_SERVER% %MC_PORT% | usr\local\wbin\tee --append %MINGW_TLS_LOG%
+            echo shutdown | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
+            usr\local\wbin\sleep 5
+      - name: Archive memtier_benchmark logs
+        uses: actions/upload-artifact@v1
+        with:
+            name: memtier_benchmark_logs
+            path: memtier_benchmark_logs
+
+  cygwin-benchmark:
+    needs: mingw-benchmark
+    runs-on: windows-latest
+    if: github.event.action == 'memtier_benchmark'
+    env:
+        MB_CMD: memtier_benchmark
+        NC_CMD: nmap\ncat
+        MB_RUN_COUNT: ${{ github.event.client_payload.mb_run_count }}
+        MB_CLIENTS: ${{ github.event.client_payload.mb_clients }}
+        MB_THREADS: ${{ github.event.client_payload.mb_threads }}
+        MB_PROTOCOL: ${{ github.event.client_payload.mb_protocol }}
+        MB_EXTRA_OPTS: ${{ github.event.client_payload.mb_extra_opts }}
+        MC_LOGS_DIR: memtier_benchmark_logs
+        MC_SERVER: 127.0.0.1
+        MC_PORT: ${{ github.event.client_payload.mc_port }}
+        MC_CONN_LIMIT: ${{ github.event.client_payload.mc_conn_limit }}
+        MC_EXTRA_OPTS: ${{ github.event.client_payload.mc_extra_opts }}
+        CYGWIN_CMD: ${{ github.event.client_payload.cygwin_cmd }}
+        CYGWIN_TCP_LOG: memtier_benchmark_logs\cygwin_tcp.log
+        CYGWIN_TLS_LOG: memtier_benchmark_logs\cygwin_tls.log
+    steps:
+      - name: Download previous logs to be merged
+        uses: actions/download-artifact@v1
+        with:
+          name: memtier_benchmark_logs
+      - uses: actions/checkout@v2
+      - name: Download latest memtier_benchmark and memcached-cygwin binaries
+        shell: cmd
+        run: |
+            @echo ON
+            set MC_BASE_URL=https://bintray.com/jefty/generic
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o UnxUtils.zip -L --proto-redir =https https://docs.google.com/uc?export=download^&id=1OBMV1eMC1dcR1DGAbkE0payROJP_TfEp
+            7z x UnxUtils.zip
+            set BASENAME_CMD=usr\local\wbin\basename
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o memcached-cygwin.zip -L --proto-redir =https https://github.com/nono303/memcached/archive/master.zip
+            7z x memcached-cygwin.zip
+            set MB_BASE_URL=https://github.com/jefyt/memtier_benchmark-windows/releases
+            FOR /F "tokens=* USEBACKQ" %%F IN (`curl -fsSR --connect-timeout 15 -m 20 --retry 3 -Ls -o NUL: -w %%{url_effective} %MB_BASE_URL%/latest`) DO (
+                SET MB_RELEASE_URL=%%F
+            )
+            FOR /F "tokens=* USEBACKQ" %%F IN (`%BASENAME_CMD% %MB_RELEASE_URL%`) DO (
+                SET MB_VERSION=%%F
+            )
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o %MB_CMD%.exe -L --proto-redir =https %MB_BASE_URL%/download/%MB_VERSION%/memtier_benchmark-win64.exe
+            set NMAP_VERSION=7.80
+            set NMAP_ARCHIVE_NAME=nmap-%NMAP_VERSION%
+            curl -fsSR --connect-timeout 15 -m 20 --retry 3 -o %NMAP_ARCHIVE_NAME%.zip -L --proto-redir =https https://nmap.org/dist/%NMAP_ARCHIVE_NAME%-win32.zip
+            7z x %NMAP_ARCHIVE_NAME%.zip
+            move %NMAP_ARCHIVE_NAME% nmap
+            mkdir %MC_LOGS_DIR%
+      - name: Benchmark memcached-cygwin (no TLS)
+        shell: cmd
+        run: |
+            @echo ON
+            set MC_CMD=%CYGWIN_CMD%
+            %MC_CMD% --version
+            %MC_CMD% -dA -p %MC_PORT% -c %MC_CONN_LIMIT% %MC_EXTRA_OPTS%
+            usr\local\wbin\sleep 5
+            echo stats settings | %NC_CMD% %MC_SERVER% %MC_PORT%
+            echo stats | %NC_CMD% %MC_SERVER% %MC_PORT%
+            %MB_CMD% --out-file=%CYGWIN_TCP_LOG% --server=%MC_SERVER% --port=%MC_PORT% --protocol=%MB_PROTOCOL% --run-count=%MB_RUN_COUNT% --clients=%MB_CLIENTS% --threads=%MB_THREADS% %MB_EXTRA_OPTS%
+            echo stats | %NC_CMD% %MC_SERVER% %MC_PORT% | usr\local\wbin\tee --append %CYGWIN_TCP_LOG%
+            echo shutdown | %NC_CMD% %MC_SERVER% %MC_PORT%
+            usr\local\wbin\sleep 5
+      - name: Benchmark memcached-cygwin (TLS)
+        shell: cmd
+        run: |
+            @echo ON
+            set MC_CMD=%CYGWIN_CMD%
+            %MC_CMD% --version
+            %MC_CMD% -dA -p %MC_PORT% -Z -o ssl_chain_cert=t/server_crt.pem -o ssl_key=t/server_key.pem -c %MC_CONN_LIMIT% %MC_EXTRA_OPTS%
+            usr\local\wbin\sleep 5
+            echo stats settings | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
+            echo stats | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
+            %MB_CMD% --tls --tls-skip-verify --out-file=%CYGWIN_TLS_LOG% --server=%MC_SERVER% --port=%MC_PORT% --protocol=%MB_PROTOCOL% --run-count=%MB_RUN_COUNT% --clients=%MB_CLIENTS% --threads=%MB_THREADS% %MB_EXTRA_OPTS%
+            echo stats | %NC_CMD% --ssl %MC_SERVER% %MC_PORT% | usr\local\wbin\tee --append %CYGWIN_TLS_LOG%
+            echo shutdown | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
+            usr\local\wbin\sleep 5
+      - name: Archive memtier_benchmark logs
+        uses: actions/upload-artifact@v1
+        with:
+            name: memtier_benchmark_logs
+            path: memtier_benchmark_logs
+
+  ubuntu-benchmark:
+    needs: cygwin-benchmark
+    runs-on: ubuntu-latest
+    env:
+        MB_RUN_COUNT: ${{ github.event.client_payload.mb_run_count }}
+        MB_CLIENTS: ${{ github.event.client_payload.mb_clients }}
+        MB_THREADS: ${{ github.event.client_payload.mb_threads }}
+        MB_PROTOCOL: ${{ github.event.client_payload.mb_protocol }}
+        MB_EXTRA_OPTS: ${{ github.event.client_payload.mb_extra_opts }}
+        MC_LOGS_DIR: memtier_benchmark_logs
+        MC_SERVER: 127.0.0.1
+        MC_PORT: ${{ github.event.client_payload.mc_port }}
+        MC_CONN_LIMIT: ${{ github.event.client_payload.mc_conn_limit }}
+        MC_EXTRA_OPTS: ${{ github.event.client_payload.mc_extra_opts }}
+        MC_CMD: memcached/memcached
+        MB_CMD: memtier_benchmark/memtier_benchmark
+        UBUNTU_TCP_LOG: memtier_benchmark_logs/ubuntu_tcp.log
+        UBUNTU_TLS_LOG: memtier_benchmark_logs/ubuntu_tls.log
+    steps:
+      - name: Download previous logs to be merged
+        uses: actions/download-artifact@v1
+        with:
+          name: memtier_benchmark_logs
+      - name: Install deps
+        run: |
+            sudo apt-get update -y
+            sudo apt-get install -y libevent-dev libseccomp-dev
+      - name: Build latest memtier_benchmark and memcached
+        run: |
+            git clone --depth=1 https://github.com/RedisLabs/memtier_benchmark.git
+            cd memtier_benchmark
+            autoreconf -ivf
+            ./configure
+            make -j
+            strip memtier_benchmark
+            cd ..
+            git clone --depth=1 https://github.com/memcached/memcached.git
+            cd memcached
+            ./autogen.sh
+            ./configure --enable-seccomp --enable-tls
+            make -j
+            strip memcached
+            cd ..
+            mkdir -p ${MC_LOGS_DIR}
+      - name: Benchmark memcached (no TLS)
+        run: |
+            ${MC_CMD} --version
+            ${MC_CMD} -dA -p ${MC_PORT} -c ${MC_CONN_LIMIT} ${MC_EXTRA_OPTS}
+            sleep 5
+            echo "stats settings" | nc -q 1 ${MC_SERVER} ${MC_PORT}
+            echo stats | nc -q 1 ${MC_SERVER} ${MC_PORT}
+            ${MB_CMD} --out-file=${UBUNTU_TCP_LOG} --server=${MC_SERVER} --port=${MC_PORT} --protocol=${MB_PROTOCOL} --run-count=${MB_RUN_COUNT} --clients=${MB_CLIENTS} --threads=${MB_THREADS} ${MB_EXTRA_OPTS}
+            echo stats | nc -q 1 ${MC_SERVER} ${MC_PORT} | tee --append ${UBUNTU_TCP_LOG}
+            echo shutdown | nc -q 1 ${MC_SERVER} ${MC_PORT}
+            sleep 5
+      - name: Benchmark memcached (TLS)
+        run: |
+            OPENSSL_CLIENT_OPTS="-no-CAfile -no-CApath -CAfile memcached/t/cacert.pem -noservername -quiet -no_ign_eof"
+            ${MC_CMD} --version
+            ${MC_CMD} -dA -p ${MC_PORT} -Z -o ssl_chain_cert=memcached/t/server_crt.pem -o ssl_key=memcached/t/server_key.pem -c ${MC_CONN_LIMIT} ${MC_EXTRA_OPTS}
+            sleep 5
+            echo "stats settings" | openssl s_client ${OPENSSL_CLIENT_OPTS} -connect ${MC_SERVER}:${MC_PORT}
+            echo stats | openssl s_client ${OPENSSL_CLIENT_OPTS} -connect ${MC_SERVER}:${MC_PORT}
+            ${MB_CMD} --tls --tls-skip-verify --out-file=${UBUNTU_TLS_LOG} --server=${MC_SERVER} --port=${MC_PORT} --protocol=${MB_PROTOCOL} --run-count=${MB_RUN_COUNT} --clients=${MB_CLIENTS} --threads=${MB_THREADS} ${MB_EXTRA_OPTS}
+            echo stats | openssl s_client ${OPENSSL_CLIENT_OPTS} -connect ${MC_SERVER}:${MC_PORT} | tee --append ${UBUNTU_TLS_LOG}
+            echo shutdown | openssl s_client ${OPENSSL_CLIENT_OPTS} -connect ${MC_SERVER}:${MC_PORT}
+            sleep 5
+      - name: Archive memtier_benchmark logs
+        uses: actions/upload-artifact@v1
+        with:
+            name: memtier_benchmark_logs
+            path: memtier_benchmark_logs
