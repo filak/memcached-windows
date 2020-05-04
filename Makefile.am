@@ -209,7 +209,11 @@ test:	memcached-debug$(EXEEXT) sizes$(EXEEXT) testapp$(EXEEXT)
 	wine $(builddir)/sizes$(EXEEXT)
 	mkdir -p tmp
 	WINE_TEST=1 wine $(builddir)/testapp$(EXEEXT)
-	WINE_TEST=1 prove $(TESTDIR)
+	@if test -n "${PARALLEL}"; then \
+	  WINE_TEST=1 prove ${TESTDIR} -j ${PARALLEL}; \
+	else \
+	  WINE_TEST=1 prove ${TESTDIR}; \
+	fi
 endif
 
 docs:
