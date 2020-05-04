@@ -3,6 +3,31 @@ name: GitHub CI
 on: [push, pull_request]
 
 jobs:
+  mingw-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install deps
+      run: |
+        sudo apt-get update -y
+    - name: Build & Test
+      run: |
+        export DOCKER_IMAGE='debian:testing'
+        export PARALLEL=5
+        export CPU=64
+        time docker pull "${DOCKER_IMAGE}"
+        time docker run -v "$(pwd):$(pwd)" -w "$(pwd)" \
+          --env-file <(env | grep -E '^(PARALLEL|CPU)') \
+          "${DOCKER_IMAGE}" \
+          sh -c ./mingw/build/_ci-linux-debian.sh
+        mkdir -p memcached-win64-mingw
+        mv -v *.exe memcached-win64-mingw/
+    - name: Archive memcached binaries
+      uses: actions/upload-artifact@v1
+      with:
+          name: memcached-win64-mingw
+          path: memcached-win64-mingw
+
   ubuntu-build:
     runs-on: ubuntu-latest
     steps:
@@ -10,12 +35,12 @@ jobs:
     - name: Install deps
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y libevent-dev libseccomp-dev git libsasl2-dev
+        sudo apt-get install -y libevent-dev libseccomp-dev libsasl2-dev
     - name: Build
       run: |
         gcc --version
         ./autogen.sh
-        ./configure --enable-seccomp --enable-tls --enable-extstore --enable-sasl --enable-sasl-pwdb
+        ./configure --enable-seccomp --enable-tls --enable-sasl --enable-sasl-pwdb
         make -j
 
   macos-build:
@@ -32,20 +57,4 @@ jobs:
         export CC=clang
         export ac_cv_libssl_dir=/usr/local/opt/openssl@1.1
         ./configure --enable-tls
-        make -j
-
-  debian-build:
-    runs-on: ubuntu-latest
-    container: debian:testing
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install deps
-      run: |
-        apt-get update -y
-        apt-get install -y build-essential automake autoconf libevent-dev libseccomp-dev git libssl-dev libsasl2-dev
-    - name: Build
-      run: |
-        gcc --version
-        ./autogen.sh
-        ./configure --enable-seccomp --enable-tls --enable-extstore --enable-sasl --enable-sasl-pwdb
         make -j

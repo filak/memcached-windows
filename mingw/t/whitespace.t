@@ -24,6 +24,7 @@ BEGIN {
     push(@exempted, glob("mingw/**"));              # Exempt Code::Blocks project files
     push(@exempted, glob("mingw/bin/**/**"));       # Exempt Code::Blocks built files
     push(@exempted, glob("mingw/build/*.patch"));   # Exempt mingw/build patch files
+    push(@exempted, glob("tmp/**"));                # Exempt temporary files
     my $mingw_build_dir = "mingw/build";            # Exclude mingw/build files from git result
     my %exempted_hash = map { $_ => 1 } @exempted;
 

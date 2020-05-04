@@ -65,7 +65,7 @@ jobs:
             %MC_CMD% -dA -p %MC_PORT% -c %MC_CONN_LIMIT% %MC_EXTRA_OPTS%
             usr\local\wbin\sleep 5
             echo stats settings | %NC_CMD% %MC_SERVER% %MC_PORT%
-            echo stats | %NC_CMD% %MC_SERVER% %MC_PORT%            
+            echo stats | %NC_CMD% %MC_SERVER% %MC_PORT%
             %MB_CMD% --out-file=%MINGW_TCP_LOG% --server=%MC_SERVER% --port=%MC_PORT% --protocol=%MB_PROTOCOL% --run-count=%MB_RUN_COUNT% --clients=%MB_CLIENTS% --threads=%MB_THREADS% %MB_EXTRA_OPTS%
             echo stats | %NC_CMD% %MC_SERVER% %MC_PORT% | usr\local\wbin\tee --append %MINGW_TCP_LOG%
             echo shutdown | %NC_CMD% %MC_SERVER% %MC_PORT%
@@ -79,7 +79,7 @@ jobs:
             %MC_CMD% -dA -p %MC_PORT% -Z -o ssl_chain_cert=t/server_crt.pem -o ssl_key=t/server_key.pem -c %MC_CONN_LIMIT% %MC_EXTRA_OPTS%
             usr\local\wbin\sleep 5
             echo stats settings | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
-            echo stats | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%            
+            echo stats | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
             %MB_CMD% --tls --tls-skip-verify --out-file=%MINGW_TLS_LOG% --server=%MC_SERVER% --port=%MC_PORT% --protocol=%MB_PROTOCOL% --run-count=%MB_RUN_COUNT% --clients=%MB_CLIENTS% --threads=%MB_THREADS% %MB_EXTRA_OPTS%
             echo stats | %NC_CMD% --ssl %MC_SERVER% %MC_PORT% | usr\local\wbin\tee --append %MINGW_TLS_LOG%
             echo shutdown | %NC_CMD% --ssl %MC_SERVER% %MC_PORT%
