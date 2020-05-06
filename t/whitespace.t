@@ -19,6 +19,8 @@ BEGIN {
     push(@exempted, glob("m4/*backport*m4"));
     push(@exempted, glob("*.orig"));
     push(@exempted, glob(".*.swp"));
+    push(@exempted, glob("*/*.log"));
+    push(@exempted, glob("*.log"));
     my %exempted_hash = map { $_ => 1 } @exempted;
 
     my @stuff = split /\0/, `git ls-files -z -c -m -o --exclude-standard`;

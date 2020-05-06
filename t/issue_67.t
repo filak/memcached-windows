@@ -7,6 +7,7 @@ use lib "$Bin/lib";
 use MemcachedTest;
 use Carp qw(croak);
 use Socket qw(sockaddr_in INADDR_ANY PF_INET SOCK_STREAM);
+use File::Basename;
 
 use Cwd;
 my $builddir = getcwd;
@@ -60,12 +61,27 @@ sub run_server {
     my $root = '';
     $root = "-u root" if ($< == 0);
 
-    # test build requires more privileges
-    $args .= " -o relaxed_privileges";
+    if (!$ENV{VALGRIND_TEST}) {
+        # test build requires more privileges
+        $args .= " -o relaxed_privileges";
+    }
 
-    my $cmd = "$builddir/timedrun 10 $exe $root $args";
+    my $valgrind_exe = "";
+    my $valgrind_args = "";
+    my $retry_interval = 0.10;
+
+    if ($ENV{VALGRIND_TEST}) {
+        $retry_interval = 0.50;
+        $valgrind_exe = "valgrind";
+        my $caller_file = basename(__FILE__);
+        $valgrind_args = "--log-file=$ENV{VALGRIND_LOG_PREFIX}$caller_file.%p.log";
+        $valgrind_args .= " $ENV{VALGRIND_EXTRA_ARGS}";
+    }
+
+    my $cmd = "$builddir/timedrun 10 $valgrind_exe $valgrind_args $exe $root $args";
 
     unless($childpid) {
+        # print STDERR "RUN: $cmd\n";
         exec $cmd;
         exit; # NOTREACHED
     }
@@ -74,7 +90,7 @@ sub run_server {
         if (-f "/tmp/ports.$$") {
             return Memcached::Handle->new(pid  => $childpid);
         }
-        select undef, undef, undef, 0.10;
+        select undef, undef, undef, $retry_interval;
     }
     croak "Failed to start server.";
 }

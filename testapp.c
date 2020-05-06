@@ -78,6 +78,8 @@ static in_port_t port;
 static struct conn *con = NULL;
 static bool allow_closed_read = false;
 static bool enable_ssl = false;
+static bool valgrind_test = false;
+static bool valgrind_log_console = false;
 
 static void close_conn() {
     if (con == NULL) return;
@@ -487,6 +489,45 @@ static enum test_return test_safe_strtol(void) {
     return TEST_PASS;
 }
 
+#define VALGRIND_CMD_ENV        "VALGRIND_CMD"
+#define VALGRIND_CMD_DEFAULT    "/usr/bin/valgrind"
+static char *get_valgrind_cmd() {
+    char *valgrind_cmd;
+
+    valgrind_cmd = getenv(VALGRIND_CMD_ENV);
+    if(NULL == valgrind_cmd) {
+        valgrind_cmd = VALGRIND_CMD_DEFAULT;
+    }
+
+    return valgrind_cmd;
+}
+
+static int execv_valgrind(const char *path, char *argv[], int valgrind_arg_idx)
+{
+    int ret;
+    int arg_idx = valgrind_arg_idx;
+    char cmd_line[1024];
+    char *cmd_line_ptr = cmd_line;
+    int printf_len = 0;
+    int rem_line_len = sizeof(cmd_line) - 1;
+
+    while((argv[arg_idx] != NULL) && (rem_line_len > 0)) {
+        printf_len = snprintf(cmd_line_ptr, rem_line_len, "%s ", argv[arg_idx]);
+        cmd_line_ptr += printf_len;
+        rem_line_len -= printf_len;
+        arg_idx++;
+    }
+    /* Remove the trailing ' ' */
+    *(cmd_line_ptr - 1) = '\0';
+
+    argv[valgrind_arg_idx] = cmd_line;
+    argv[valgrind_arg_idx + 1] = NULL;
+
+    ret = execv(path, argv);
+
+    return ret;
+}
+
 /**
  * Function to start the server and let it listen on a random port
  *
@@ -525,6 +566,10 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
         char *argv[24];
         int arg = 0;
         char tmo[24];
+        int valgrind_arg_idx = 0;
+        char valgrind_log_args[128];
+        char *valgrind_log_prefix = getenv("VALGRIND_LOG_PREFIX");
+        char *valgrind_extra_args = getenv("VALGRIND_EXTRA_ARGS");
         snprintf(tmo, sizeof(tmo), "%u", timeout);
 
         putenv(environment);
@@ -537,6 +582,24 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
             argv[arg++] = "./timedrun";
             argv[arg++] = tmo;
         }
+
+        if (valgrind_test) {
+            argv[arg++] = "sh";
+            argv[arg++] = "-c";
+            valgrind_arg_idx = arg;
+            argv[arg++] = get_valgrind_cmd();
+            if(!valgrind_log_console) {
+                if(valgrind_log_prefix == NULL) {
+                    valgrind_log_prefix = "";
+                }
+                snprintf(valgrind_log_args, sizeof(valgrind_log_args), "--log-file=%stestapp.%%p.log", valgrind_log_prefix);
+                argv[arg++] = valgrind_log_args;
+            }
+            if(valgrind_extra_args != NULL) {
+                argv[arg++] = valgrind_extra_args;
+            }
+        }
+
         argv[arg++] = "./memcached-debug";
         argv[arg++] = "-A";
         argv[arg++] = "-p";
@@ -566,11 +629,17 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
          argv[arg++] = "-vvv";
 #endif
 #ifdef HAVE_DROP_PRIVILEGES
-        argv[arg++] = "-o";
-        argv[arg++] = "relaxed_privileges";
+        if(!valgrind_test) {
+            argv[arg++] = "-o";
+            argv[arg++] = "relaxed_privileges";
+        }
 #endif
         argv[arg++] = NULL;
-        assert(execv(argv[0], argv) != -1);
+        if(valgrind_test) {
+            assert(execv_valgrind(argv[0], argv, valgrind_arg_idx) != -1);
+        } else {
+            assert(execv(argv[0], argv) != -1);
+        }
     }
 
     /* Yeah just let us "busy-wait" for the file to be created ;-) */
@@ -628,11 +697,15 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
 }
 
 static enum test_return test_issue_44(void) {
-    in_port_t port;
-    pid_t pid = start_server(&port, true, 15);
-    assert(kill(pid, SIGHUP) == 0);
-    sleep(1);
-    assert(kill(pid, SIGTERM) == 0);
+    if(valgrind_test) {
+        fprintf(stderr, "Skipping %s under valgrind...\n", __func__);
+    } else {
+        in_port_t port;
+        pid_t pid = start_server(&port, true, 15);
+        assert(kill(pid, SIGHUP) == 0);
+        sleep(1);
+        assert(kill(pid, SIGTERM) == 0);
+    }
 
     return TEST_PASS;
 }
@@ -2304,6 +2377,9 @@ int main(int argc, char **argv)
         enable_ssl = true;
     }
 #endif
+    valgrind_test = (getenv("VALGRIND_TEST") != NULL);
+    valgrind_log_console = (getenv("VALGRIND_LOG_CONSOLE") != NULL);
+
     /* Initialized directly instead of using hash_init to avoid pulling in
        the definition of settings struct from memcached.h */
     hash = jenkins_hash;

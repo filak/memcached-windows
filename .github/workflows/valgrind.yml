@@ -1,0 +1,40 @@
+name: Valgrind
+
+on: [push, pull_request]
+
+jobs:
+  valgrind-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install deps
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y libevent-dev libseccomp-dev git libsasl2-dev valgrind
+    - name: Build
+      run: |
+        gcc --version
+        ./autogen.sh
+        ./configure --enable-tls --enable-sasl --enable-sasl-pwdb
+        make -j
+    - name: Test
+      run: |
+        export PARALLEL=3
+        export VALGRIND_LOG_PREFIX="$(pwd)/valgrind-ubuntu_logs/"
+        export VALGRIND_EXTRA_ARGS="--time-stamp=yes"
+        mkdir -p "${VALGRIND_LOG_PREFIX}"
+        sudo -E bash -c ./t/run_valgrind.sh
+    - name: Test TLS
+      if: ${{ always() }}
+      run: |
+        export PARALLEL=3
+        export VALGRIND_LOG_PREFIX="$(pwd)/valgrind-ubuntu_logs/"
+        export VALGRIND_EXTRA_ARGS="--time-stamp=yes"
+        export SSL_TEST=1
+        sudo -E bash -c ./t/run_valgrind.sh
+    - name: Archive valgrind logs
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v1
+      with:
+        name: valgrind-ubuntu_logs
+        path: valgrind-ubuntu_logs

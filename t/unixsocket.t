@@ -25,6 +25,9 @@ if (supports_unix_socket()) {
     unlink($filename);
 
     ## Just some basic stuff for now...
+} elsif ($ENV{VALGRIND_TEST}) {
+    plan skip_all => 'Skipping valgrind test for unix socket';
+    exit 0;
 } else {
     plan tests => 1;
 

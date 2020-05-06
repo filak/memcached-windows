@@ -5,6 +5,7 @@ use IO::Socket::UNIX;
 use Exporter 'import';
 use Carp qw(croak);
 use vars qw(@EXPORT);
+use File::Basename;
 
 # Instead of doing the substitution with Autoconf, we assume that
 # cwd == builddir.
@@ -214,8 +215,10 @@ sub supports_tls {
 }
 
 sub supports_unix_socket {
-    my $output = print_help();
-    return 1 if $output =~ /unix-socket/i;
+    if (!$ENV{VALGRIND_TEST}) {
+        my $output = print_help();
+        return 1 if $output =~ /unix-socket/i;
+    }
     return 0;
 }
 
@@ -279,7 +282,9 @@ sub new_memcached {
     if ($< == 0) {
         $args .= " -u root";
     }
-    $args .= " -o relaxed_privileges";
+    if (!$ENV{VALGRIND_TEST}) {
+        $args .= " -o relaxed_privileges";
+    }
 
     my $udpport;
     if ($args =~ /-l (\S+)/ || (($ssl_enabled || $unix_socket_disabled) && ($args !~ /-s (\S+)/))) {
@@ -304,10 +309,23 @@ sub new_memcached {
     my $childpid = fork();
 
     my $exe = get_memcached_exe();
+    my $valgrind_exe = "";
+    my $valgrind_args = "";
+    my $retry_interval = 0.10;
+
+    if ($ENV{VALGRIND_TEST}) {
+        $retry_interval = 0.50;
+        $valgrind_exe = "valgrind";
+        my $caller_file = (caller(0))[1];
+        my $caller_file = basename($caller_file);
+        $valgrind_args = "--log-file=$ENV{VALGRIND_LOG_PREFIX}$caller_file.%p.log";
+        $valgrind_args .= " $ENV{VALGRIND_EXTRA_ARGS}";
+    }
 
     unless ($childpid) {
-        #print STDERR "RUN: $exe $args\n";
-        exec "$builddir/timedrun 600 $exe $args";
+        my $cmd = "$builddir/timedrun 600 $valgrind_exe $valgrind_args $exe $args";
+        # print STDERR "RUN: $cmd\n";
+        exec $cmd;
         exit; # never gets here.
     }
 
@@ -347,7 +365,7 @@ sub new_memcached {
                                           host => $host,
                                           port => $port);
         }
-        select undef, undef, undef, 0.10;
+        select undef, undef, undef, $retry_interval;
     }
     croak("Failed to startup/connect to memcached server.");
 }
