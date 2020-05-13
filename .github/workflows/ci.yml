@@ -19,3 +19,5 @@ jobs:
         make -j
     - name: Test
       run: PARALLEL=5 make test
+    - name: Test TLS
+      run: PARALLEL=5 make test_tls
