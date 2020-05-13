@@ -54,6 +54,6 @@ Feel free to use the issue tracker on github.
 
 **If you are reporting a security bug** please contact a maintainer privately.
 We follow responsible disclosure: we handle reports privately, prepare a
-patch, allow notifications to vendor lists, then run a fix release and your
+patch, allow notifications to vendor lists. Then we push a fix release and your
 bug can be posted publicly with credit in our release notes and commit
 history.

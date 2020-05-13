@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <sys/param.h>
 #include <sys/resource.h>
+#include <sys/uio.h>
 #include <ctype.h>
 #include <stdarg.h>
 
@@ -184,7 +185,7 @@ static enum transmit_result transmit(conn *c);
  * can block the listener via a condition.
  */
 static volatile bool allow_new_conns = true;
-static bool stop_main_loop = false;
+static int stop_main_loop = NOT_STOP;
 static struct event maxconnsevent;
 static void maxconns_handler(const evutil_socket_t fd, const short which, void *arg) {
     struct timeval t = {.tv_sec = 0, .tv_usec = 10000};
@@ -8364,13 +8365,13 @@ static void remove_pidfile(const char *pid_file) {
 }
 
 static void sig_handler(const int sig) {
-    printf("Signal handled: %s(%d).\n", strsignal(sig), sig);
-    exit(EXIT_SUCCESS);
+    stop_main_loop = EXIT_NORMALLY;
+    printf("Signal handled: %s.\n", strsignal(sig));
 }
 
 static void sig_usrhandler(const int sig) {
-    printf("Graceful shutdown signal handled: %s(%d).\n", strsignal(sig), sig);
-    stop_main_loop = true;
+    printf("Graceful shutdown signal handled: %s.\n", strsignal(sig));
+    stop_main_loop = GRACE_STOP;
 }
 
 #ifndef WINDOWS_ONLY_SIGNALS
@@ -8469,13 +8470,9 @@ static bool sanitycheck(void) {
     const char *ever = event_get_version();
     if (ever != NULL) {
         if (strncmp(ever, "1.", 2) == 0) {
-            /* Require at least 1.3 (that's still a couple of years old) */
-            if (('0' <= ever[2] && ever[2] < '3') && !isdigit(ever[3])) {
-                fprintf(stderr, "You are using libevent %s.\nPlease upgrade to"
-                        " a more recent version (1.3 or newer)\n",
-                        event_get_version());
-                return false;
-            }
+            fprintf(stderr, "You are using libevent %s.\nPlease upgrade to 2.x"
+                        " or newer\n", event_get_version());
+            return false;
         }
     }
 
@@ -10259,6 +10256,7 @@ int main (int argc, char **argv) {
             /* Only rescues non-COLD items if below this threshold */
             settings.ext_drop_under = storage_file->page_count / 4;
         }
+        // FIXME: temporarily removed.
         crc32c_init();
         /* Init free chunks to zero. */
         for (int x = 0; x < MAX_NUMBER_OF_SLAB_CLASSES; x++) {
@@ -10464,9 +10462,20 @@ int main (int argc, char **argv) {
         }
     }
 
-    fprintf(stderr, "Gracefully stopping\n");
+    switch (stop_main_loop) {
+        case GRACE_STOP:
+            fprintf(stderr, "Gracefully stopping\n");
+        break;
+        case EXIT_NORMALLY:
+            // Don't need to print anything to STDERR for a normal shutdown.
+        break;
+        default:
+            fprintf(stderr, "Exiting on error\n");
+        break;
+    }
+
     stop_threads();
-    if (memory_file != NULL) {
+    if (memory_file != NULL && stop_main_loop == GRACE_STOP) {
         restart_mmap_close();
     }
 

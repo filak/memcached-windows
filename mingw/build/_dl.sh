@@ -1,6 +1,6 @@
 #!/bin/sh -x
 
-export MEMCACHED_VER_='1.6.5'
+export MEMCACHED_VER_='1.6.6'
 export MEMCACHED_DATE_VER_='' # Dynamically resolved based on MEMCACHED_VER_
 export MC_CRUSHER_VER_='master'
 export LIBEVENT_VER_='' # Dynamically resolved based on latest release
