@@ -17,5 +17,56 @@ jobs:
         ./autogen.sh
         ./configure --enable-seccomp --enable-tls --enable-sasl --enable-sasl-pwdb
         make -j
-    - name: Test
-      run: PARALLEL=5 make test
+    - name: TestApp
+      timeout-minutes: 1
+      run: ./testapp
+    - name: TestApp TLS
+      if: ${{ always() }}
+      timeout-minutes: 1
+      run: SSL_TEST=1 ./testapp
+    - name: Test Suite
+      if: ${{ always() }}
+      timeout-minutes: 10
+      run: prove t -j 5
+    - name: Test Suite TLS
+      if: ${{ always() }}
+      timeout-minutes: 10
+      run: SSL_TEST=1 prove t -j 5
+
+  macos-build-test:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install deps
+      run: |
+        brew install automake
+        export OPENSSL_PREFIX=/usr/local/opt/openssl@1.1
+        export LD_LIBRARY_PATH="${OPENSSL_PREFIX}/lib"
+        cpan Net::SSLeay
+        cpan IO::Socket::SSL
+    - name: Build
+      run: |
+        gcc --version
+        ./autogen.sh
+        export ac_cv_libssl_dir=/usr/local/opt/openssl@1.1
+        ./configure --enable-tls
+        make -j
+    - name: TestApp
+      timeout-minutes: 1
+      run: |
+        ./testapp
+    - name: TestApp TLS
+      if: ${{ always() }}
+      timeout-minutes: 1
+      run: |
+        SSL_TEST=1 ./testapp
+    - name: Test Suite
+      if: ${{ always() }}
+      timeout-minutes: 10
+      run: |
+        prove t -j 5
+    - name: Test Suite TLS
+      if: ${{ always() }}
+      timeout-minutes: 10
+      run: |
+        SSL_TEST=1 prove t -j 5
