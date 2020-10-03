@@ -50,7 +50,7 @@
 		</Compiler>
 		<Linker>
 			<Add option="-static-libgcc" />
-			<Add option="-Wl,-Bstatic -levent -Wl,-Bstatic -lssl -Wl,-Bstatic -lcrypto -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32" />
+			<Add option="-Wl,-Bstatic -levent -Wl,-Bstatic -lssl -Wl,-Bstatic -lcrypto -Wl,-Bstatic -lpthread -Wl,-Bdynamic -lws2_32 -liphlpapi" />
 			<Add directory="$(LIBEVENTDIR)/lib" />
 			<Add directory="$(SSLDIR)/lib" />
 		</Linker>
@@ -110,6 +110,14 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../murmur3_hash.h" />
+		<Unit filename="../proto_bin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../proto_bin.h" />
+		<Unit filename="../proto_text.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../proto_text.h" />
 		<Unit filename="../restart.c">
 			<Option compilerVar="CC" />
 		</Unit>

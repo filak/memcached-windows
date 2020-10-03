@@ -646,7 +646,6 @@ AC_CHECK_FUNCS(mlockall)
 AC_CHECK_FUNCS(getpagesizes)
 AC_CHECK_FUNCS(sysconf)
 AC_CHECK_FUNCS(memcntl)
-AC_CHECK_FUNCS(sigignore)
 AC_CHECK_FUNCS(clock_gettime)
 AC_CHECK_FUNCS(preadv)
 AC_CHECK_FUNCS(pread)
@@ -796,7 +795,7 @@ if test "$ICC" = "yes"
 then
    dnl ICC trying to be gcc.
    CFLAGS="$CFLAGS -diag-disable 187 -Wall -Werror"
-   AC_DEFINE([_GNU_SOURCE],[1],[find sigignore on Linux])
+   AC_DEFINE([_GNU_SOURCE],[1],[make sure IOV_MAX is defined])
 elif test "$GCC" = "yes"
 then
   GCC_VERSION=`$CC -dumpversion`
@@ -804,7 +803,7 @@ then
   if test "x$host_os" != "xmingw32"; then
     CFLAGS="$CFLAGS -pedantic"
   else
-    LIBS="$LIBS -Wl,-Bdynamic -lws2_32"
+    LIBS="$LIBS -Wl,-Bdynamic -lws2_32 -liphlpapi"
   fi
   if test "x$enable_asan" = "xyes"; then
     CFLAGS="$CFLAGS -fsanitize=address"
@@ -814,7 +813,7 @@ then
     CFLAGS="$CFLAGS -fno-strict-aliasing"
     ;;
   esac
-  AC_DEFINE([_GNU_SOURCE],[1],[find sigignore on Linux])
+  AC_DEFINE([_GNU_SOURCE],[1],[make sure IOV_MAX is defined])
 elif test "$SUNCC" = "yes"
 then
   CFLAGS="$CFLAGS -errfmt=error -errwarn -errshort=tags"

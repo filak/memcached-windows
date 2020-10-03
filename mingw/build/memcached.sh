@@ -192,6 +192,6 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
 
   unix2dos -q -k "${_DST}"/*.txt
 
-  "${BUILD_SCRIPT_DIR}/_pack.sh" "${PWD}/${_ref}"
+  "${BUILD_SCRIPT_DIR}/_pack.sh" "${_ref}"
   _NAM="${_NAM}-windows" "${BUILD_SCRIPT_DIR}/_ul.sh"
 )

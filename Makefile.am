@@ -30,7 +30,9 @@ memcached_SOURCES = memcached.c memcached.h \
                     itoa_ljust.c itoa_ljust.h \
                     slab_automove.c slab_automove.h \
                     authfile.c authfile.h \
-                    restart.c restart.h
+                    restart.c restart.h \
+                    proto_text.c proto_text.h \
+                    proto_bin.c proto_bin.h
 
 if !BUILD_MINGW
 memcached_SOURCES += daemon.c
@@ -153,8 +155,8 @@ if !BUILD_MINGW
 test_basic_tls:
 	@if test $(SSL_TEST)1 != 1; then \
 	  echo "Running basic tests with TLS"; \
-	  $(builddir)/testapp; \
-	  prove $(srcdir)/t/binary.t $(srcdir)/t/getset.t $(srcdir)/t/ssl*; \
+	  $(builddir)/testapp && \
+	  prove $(srcdir)/t/binary.t $(srcdir)/t/getset.t $(srcdir)/t/ssl* && \
 	  echo "Finished running basic TLS tests"; \
 	else \
 	  echo "Set SSL_TEST=1 to enable TLS tests"; \

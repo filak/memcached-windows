@@ -624,16 +624,17 @@ static pid_t start_server(in_port_t *port_out, bool daemon, int timeout) {
     }
 
     /* Yeah just let us "busy-wait" for the file to be created ;-) */
-    while (access(filename, F_OK) == -1) {
-        usleep(10);
+    useconds_t wait_timeout = 1000000 * 10;
+    useconds_t wait = 1000;
+    while (access(filename, F_OK) == -1 && wait_timeout > 0) {
+        usleep(wait);
+        wait_timeout -= (wait > wait_timeout ? wait_timeout : wait);
     }
 
-    /* In Windows, sometimes fopen error occurs even though access is already OK.
-     * File may not be ready for reading yet so sleep at least a second.
-     */
-#ifdef _WIN32
-    sleep(1);
-#endif /* #ifdef _WIN32 */
+    if (access(filename, F_OK) == -1) {
+        fprintf(stderr, "Failed to start the memcached server.\n");
+        assert(false);
+    }
 
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
