@@ -96,11 +96,7 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
   find . -name '*.pc'  -type f -delete
 
   # TLS
-  if [ -n "${TLS_BORINGSSL}" ]; then
-    OPENSSL_DIR="${BUILD_SCRIPT_DIR}/boringssl/pkg/usr/local"
-  else
-    OPENSSL_DIR="${BUILD_SCRIPT_DIR}/openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
-  fi
+  OPENSSL_DIR="${BUILD_SCRIPT_DIR}/openssl-${OPENSSL_VER_}-win${_cpu}-mingw"
 
   options=''
   options="${options} --host=${_TRIPLET}"
@@ -162,19 +158,21 @@ alias gpg='gpg --batch --keyserver-options timeout=15 --keyid-format LONG'
 
   "${_CCPREFIX}objdump" -x ${_pkg}/bin/*.exe | grep -E -i "(file format|dll name)"
 
-  make test
-  if [ -n "${TLS_TEST_FULL}" ]; then
-    make test_tls
-  elif [ -n "${TLS_TEST_BASIC}" ]; then
-    make test_basic_tls
-  fi
+  if [ -z "${BUILD_ONLY}" ]; then
+    make test
+    if [ -n "${TLS_TEST_FULL}" ]; then
+      make test_tls
+    elif [ -n "${TLS_TEST_BASIC}" ]; then
+      make test_basic_tls
+    fi
 
-  if [ -n "${CODECOV_ENABLE}" ]; then
-    bash "${BUILD_SCRIPT_DIR}/codecov.sh" -x "${_CCPREFIX}gcov"
-  fi
+    if [ -n "${CODECOV_ENABLE}" ]; then
+      bash "${BUILD_SCRIPT_DIR}/codecov.sh" -x "${_CCPREFIX}gcov"
+    fi
 
-  if [ -n "${CRUSHER_TEST}" ]; then
-    run_crusher_test > "${_pkg}/tests/mc-crusher.log" 2>&1
+    if [ -n "${CRUSHER_TEST}" ]; then
+      run_crusher_test > "${_pkg}/tests/mc-crusher.log" 2>&1
+    fi
   fi
 
   # Change to original dir

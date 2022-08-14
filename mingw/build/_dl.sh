@@ -1,10 +1,11 @@
 #!/bin/sh -x
 
-export MEMCACHED_VER_='1.6.7'
+export MEMCACHED_VER_='1.6.8'
 export MEMCACHED_DATE_VER_='' # Dynamically resolved based on MEMCACHED_VER_
 export MC_CRUSHER_VER_='master'
 export LIBEVENT_VER_='' # Dynamically resolved based on latest release
-export OPENSSL_VER_='' # Dynamically resolved based on latest release
+[ -z "${CURL_VER_}" ] && CURL_VER_='latest'
+export OPENSSL_VER_='' # Dynamically resolved based on curl release
 export OSSLSIGNCODE_VER_='1.7.1'
 export OSSLSIGNCODE_HASH=f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9
 
@@ -65,45 +66,46 @@ rm pack.bin
 rm -f -r libevent && mv libevent-* libevent
 [ -f "libevent${_patsuf}.patch" ] && dos2unix < "libevent${_patsuf}.patch" | patch --batch -N -p1 -d libevent
 
-# MinGW-w64 binaries from https://bintray.com/vszakats/generic/openssl are
+# MinGW-w64 binaries from https://curl.se/windows/ are
 # recommended by OpenSSL (see https://wiki.openssl.org/index.php/Binaries)
 dl_openssl_bin() {
   OPENSSL_CPU=$1
-  OPENSSL_ARCHIVE_NAME="openssl-${OPENSSL_VER_}-win${OPENSSL_CPU}-mingw"
-  OPENSSL_ARCHIVE_FILE="${OPENSSL_ARCHIVE_NAME}.tar.xz"
-  OPENSSL_ARCHIVE_SIG="${OPENSSL_ARCHIVE_FILE}.asc"
-  # Download tarball
-  curl -o "${OPENSSL_ARCHIVE_FILE}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_FILE}" || exit 1
-  # Download the signature
-  curl -o "${OPENSSL_ARCHIVE_SIG}" -L --proto-redir =https "https://bintray.com/vszakats/generic/download_file?file_path=${OPENSSL_ARCHIVE_SIG}" || exit 1
-  # Verify with Bintray key
-  GPG_PK="379CE192D401AB61"
-  gpg_recv_key ${GPG_PK}
-  gpg --verify-options show-primary-uid-only --verify "${OPENSSL_ARCHIVE_SIG}" "${OPENSSL_ARCHIVE_FILE}" || exit 1
-  # Extract tarball
-  rm -rf "${OPENSSL_ARCHIVE_NAME}"
-  tar -xvf "${OPENSSL_ARCHIVE_FILE}" >/dev/null 2>&1 || exit 1
+
+  if [ "${CURL_VER_}" = "latest" ]; then
+    CURL_DL_URL="http://curl.se/windows/latest.cgi?p=win${OPENSSL_CPU}-mingw.zip"
+  else
+    CURL_DL_URL="https://curl.se/windows/dl-${CURL_VER_}/curl-${CURL_VER_}-win${OPENSSL_CPU}-mingw.zip"
+  fi
+  CURL_ARCHIVE_FILE="curl-${CURL_VER_}-win${OPENSSL_CPU}-mingw.zip"
+
+  # Remove existing
+  rm -rf curl-*-win${OPENSSL_CPU}-mingw* openssl-*-win${OPENSSL_CPU}-mingw*
+  # Download zip
+  curl -o "${CURL_ARCHIVE_FILE}" -L --proto-redir =https "${CURL_DL_URL}" || exit 1
+  # Extract
+  unzip "${CURL_ARCHIVE_FILE}" >/dev/null 2>&1 || exit 1
+  # Derive OpenSSL version from opensslv.h' OPENSSL_VERSION_STR
+  OPENSSL_VER_=$(grep -Po '(?<=OPENSSL_VERSION_STR ")[^"]+' curl-*-win${OPENSSL_CPU}-mingw/include/openssl/opensslv.h)
+  # Copy openssl files from curl
+  OPENSSL_DIR="openssl-${OPENSSL_VER_}-win${OPENSSL_CPU}-mingw"
+  mkdir -p "${OPENSSL_DIR}/include" "${OPENSSL_DIR}/lib"
+  cp -a curl-*-win${OPENSSL_CPU}-mingw/dep/openssl*/* "${OPENSSL_DIR}/"
+  cp -a curl-*-win${OPENSSL_CPU}-mingw/include/openssl "${OPENSSL_DIR}/include/"
+  cp -a curl-*-win${OPENSSL_CPU}-mingw/lib/libcrypto.a "${OPENSSL_DIR}/lib/"
+  cp -a curl-*-win${OPENSSL_CPU}-mingw/lib/libssl.a "${OPENSSL_DIR}/lib/"
+  # Archive the OpenSSL
+  tar -c --owner=0 --group=0 --numeric-owner --mode=go=rX,u+rw,a-s "${OPENSSL_DIR}" | xz > "${OPENSSL_DIR}.tar.xz"
+  zip -q -9 -r "${OPENSSL_DIR}.zip" "${OPENSSL_DIR}"
+  touch -c -r "${CURL_ARCHIVE_FILE}" "${OPENSSL_DIR}.tar.xz"
+  touch -c -r "${CURL_ARCHIVE_FILE}" "${OPENSSL_DIR}.zip"
 }
 
-# BoringSSL version to be used is the %Y%m%d%H%M date format of the
-# https://github.com/google/boringssl/tree/chromium-stable's latest commit
-if [ -n "${TLS_BORINGSSL}" ]; then
-    rm -rf boringssl
-    git clone --branch chromium-stable --depth=1 https://github.com/google/boringssl.git
-    [ -f "boringssl${_patsuf}.patch" ] && dos2unix < "boringssl${_patsuf}.patch" | patch --batch -N -p1 -d boringssl
-    cd boringssl
-    export BORINGSSL_VER_="$(git log --date=format:'%Y%m%d%H%M' -1 | sed '3q;d' | awk -F ' ' '{print $2}')"
-    cd ..
+# OpenSSL
+if [ -n "$CPU" ]; then
+  dl_openssl_bin "${CPU}"
 else
-  # OpenSSL
-  OPENSSL_LATEST_URL=$(curl -Ls -o /dev/null -w %{url_effective} https://bintray.com/vszakats/generic/openssl/_latestVersion)
-  OPENSSL_VER_=$(basename "${OPENSSL_LATEST_URL}")
-  if [ -n "$CPU" ]; then
-    dl_openssl_bin "${CPU}"
-  else
-    dl_openssl_bin 64
-    dl_openssl_bin 32
-  fi
+  dl_openssl_bin 64
+  dl_openssl_bin 32
 fi
 
 # Official memcached to be used in timestamping since it has no Changelog that can be used as reference

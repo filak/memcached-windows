@@ -11,13 +11,8 @@
 ## Binary package downloads (win32 and win64)
 <table>
     <tr>
-        <td>GitHub</td>
-        <td><a href='https://github.com/jefyt/memcached-windows/releases/latest'><img src='https://api.bintray.com/packages/jefty/generic/memcached-windows/images/download.svg'></a>
-        </td>
-    </tr>
-    <tr>
-        <td>Bintray</td>
-        <td><a href='https://bintray.com/jefty/generic/memcached-windows/_latestVersion'><img src='https://api.bintray.com/packages/jefty/generic/memcached-windows/images/download.svg'></a>
+        <td>GitHub (AppVeyor CI)</td>
+        <td><a href='https://github.com/jefyt/memcached-windows/releases/latest'>Latest</a>
         </td>
     </tr>
     <tr>

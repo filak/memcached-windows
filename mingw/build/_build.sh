@@ -110,10 +110,14 @@ build_single_target() {
   export _SYSROOT=
   export _CCPREFIX=
   export _MAKE='make'
-  export _WINE=''
 
-  [ "${_cpu}" = '32' ] && _machine='i686'
-  [ "${_cpu}" = '64' ] && _machine='x86_64'
+  if [ "${_cpu}" = '32' ]; then
+    # Skip auto test for 32-bit
+    export BUILD_ONLY=1
+    _machine='i686'
+  else
+    _machine='x86_64'
+  fi
   export _ARCH="${_machine}"
 
   if [ "${os}" = 'win' ]; then
@@ -139,11 +143,6 @@ build_single_target() {
     else
       _SYSROOT="/usr/${_TRIPLET}"
     fi
-    if [ "${os}" = 'mac' ]; then
-      _WINE='wine64'
-    else
-      _WINE='wine'
-    fi
   fi
 
   export _CCVER
@@ -159,9 +158,6 @@ build_single_target() {
 
   command -v "$(dirname "$0")/osslsigncode-determ" >/dev/null 2>&1 || unset CODESIGN_KEY
 
-  if [ -n "${TLS_BORINGSSL}" ]; then
-    time ./boringssl.sh   "${BORINGSSL_VER_}" "${_cpu}"
-  fi
   time ./libevent.sh    "${LIBEVENT_VER_}" "${_cpu}"
   time ./memcached.sh   "${MEMCACHED_VER_}" "${_cpu}"
 }

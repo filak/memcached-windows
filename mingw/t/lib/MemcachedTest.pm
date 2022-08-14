@@ -268,7 +268,7 @@ sub get_timeout_exe {
 sub get_wine_exe {
     my $exe = '';
     if ($ENV{WINE_TEST}) {
-        $exe = "wine";
+        $exe = "wine64";
     }
     return $exe;
 }

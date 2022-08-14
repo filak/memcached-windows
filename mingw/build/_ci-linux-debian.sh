@@ -14,7 +14,7 @@ apt-get -qq -o=Dpkg::Use-Pty=0 install -y \
   libssl-dev libio-socket-ssl-perl \
   gcc-mingw-w64 g++-mingw-w64 \
   zip zstd time jq dos2unix \
-  wine64 wine32 perl nasm golang
+  wine64 perl
 
 cd mingw/build
 ./_build.sh

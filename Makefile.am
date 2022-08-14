@@ -165,7 +165,7 @@ else
 test_basic_tls:
 	echo "Running basic tests with TLS"
 	mkdir -p tmp
-	SSL_TEST=1 WINE_TEST=1 wine $(builddir)/testapp$(EXEEXT)
+	SSL_TEST=1 WINE_TEST=1 wine64 $(builddir)/testapp$(EXEEXT)
 	SSL_TEST=1 WINE_TEST=1 prove $(TESTDIR)/binary.t $(TESTDIR)/getset.t $(TESTDIR)/ssl*
 	echo "Finished running basic TLS tests"
 endif
@@ -208,9 +208,9 @@ endif
 	else :; fi
 else
 test:	memcached-debug$(EXEEXT) sizes$(EXEEXT) testapp$(EXEEXT)
-	wine $(builddir)/sizes$(EXEEXT)
+	wine64 $(builddir)/sizes$(EXEEXT)
 	mkdir -p tmp
-	WINE_TEST=1 wine $(builddir)/testapp$(EXEEXT)
+	WINE_TEST=1 wine64 $(builddir)/testapp$(EXEEXT)
 	@if test -n "${PARALLEL}"; then \
 	  WINE_TEST=1 prove ${TESTDIR} -j ${PARALLEL}; \
 	else \
