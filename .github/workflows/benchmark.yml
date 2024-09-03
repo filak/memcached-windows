@@ -112,7 +112,7 @@ jobs:
         CYGWIN_TLS_LOG: memtier_benchmark_logs\cygwin_tls.log
     steps:
       - name: Download previous logs to be merged
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.7
         with:
           name: memtier_benchmark_logs
       - uses: actions/checkout@v2
@@ -194,7 +194,7 @@ jobs:
         UBUNTU_TLS_LOG: memtier_benchmark_logs/ubuntu_tls.log
     steps:
       - name: Download previous logs to be merged
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.7
         with:
           name: memtier_benchmark_logs
       - name: Install deps
